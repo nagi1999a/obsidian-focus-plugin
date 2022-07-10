@@ -5,7 +5,7 @@ A plugin for [obsidian](https://obsidian.md/) to focus on  a specific paragraph 
 - Focus on a specific heading and its children when clicking on headings.
 	- For now, focus "only" on lists or other blocks are not support.
 
-![demo.gif]
+![](demo.gif)
 
 ## Usage
 Before the plugin is added to the community plugin list, you need to do the following task to install the plugin:
