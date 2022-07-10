@@ -1,73 +1,31 @@
-# Obsidian Sample Plugin
+# Focus and Highlight
+A plugin for [obsidian](https://obsidian.md/) to focus on  a specific paragraph in [Reading mode](https://help.obsidian.md/How+to/Read+and+edit+modes).
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+## Features
+- Focus on a specific heading and its children when clicking on headings.
+	- For now, focus "only" on lists or other blocks are not support.
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+![demo.gif]
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+## Usage
+Before the plugin is added to the community plugin list, you need to do the following task to install the plugin:
+1. Download the `manual_install.zip` in the release page.
+2. Open `manual_install.zip` and copy `obsidian-focus-plugin` folder in to `.obsidian/plugins` folder.
+3. Enable the plugin named `Focus and Highlight` in Obsidian's `Settings > Community plugins` Tab.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Changes the default font color to red using `styles.css`.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+Once the plugin is installed and enabled, you can focus on different headings by clicking on any headings.
 
-## First time developing plugins?
+## Options
+You can adjust the behavior of this plugin by accessing Obsidian's `Settings > Focus and Highlight` Tab. The options are listed in the following.
 
-Quick starting guide for new plugin devs:
+### Clear Method
+This option affects the way to clear the focus state. Available Modes are listed in the following.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+#### Click Again
+Clear the focus state by clicking again on the focused heading.
 
-## Releasing new releases
+#### Click Outside
+Clear the focus state by clicking on the blank area at left or right of reading area. Which may not work properly when `Settings > Editor > Readable line length` is turned off.
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
-
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
-
-## Adding your plugin to the community plugin list
-
-- Check https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- `npm i` or `yarn` to install dependencies
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
-
-
-## API Documentation
-
-See https://github.com/obsidianmd/obsidian-api
+## Discussion
+If you encountered any problems, or have suggestions about the plugin, please feel free to open issues.
