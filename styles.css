@@ -1,23 +1,18 @@
-.obsidian-focus-plugin-focus {
-    animation: obsidian-focus-plugin-focus-keyframes 0.5s forwards;
+.focus-plugin-dimmed {
+    opacity: 0.1;
 }
 
-.obsidian-focus-plugin-dimmed {
-    animation: obsidian-focus-plugin-dimmed-keyframes 0.5s forwards;
+.focus-plugin-focus-animation {
+    animation: focus-plugin-keyframes 0.5s both ease-in-out;
 }
 
-@keyframes obsidian-focus-plugin-dimmed-keyframes {
+.focus-plugin-dim-animation {
+    animation: focus-plugin-keyframes 0.5s reverse both ease-in-out;
+}
+
+@keyframes focus-plugin-keyframes {
     0% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0.2;
-    }
-}
-
-@keyframes obsidian-focus-plugin-focus-keyframes {
-    0% {
-        opacity: 0.2;
+        opacity: 0.1;
     }
     100% {
         opacity: 1;
