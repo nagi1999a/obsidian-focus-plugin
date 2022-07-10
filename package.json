@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-focus-plugin",
 	"version": "1.0.1",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "A plugin for Obsidian (https://obsidian.md) that will highlight and focus on the currently selected heading",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
