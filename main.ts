@@ -1,166 +1,172 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, MarkdownPreviewEvents } from 'obsidian';
-
-// Remember to rename these classes and interfaces!
+import { App, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 interface FocusPluginSettings {
-	mySetting: string;
+	clearMethod: 'click-again' | 'click-outside';
 }
 
 const DEFAULT_SETTINGS: FocusPluginSettings = {
-	mySetting: 'default'
+	clearMethod: 'click-again'
 }
 
 export default class FocusPlugin extends Plugin {
 	settings: FocusPluginSettings;
-	currentFocus: Element | null;
-	private findContents(element: Element) {
-		const order = ['H1', 'H2', 'H3', 'H4', 'H5'];
-		let contents = [element];
-		let current = element.nextElementSibling;
-		let tagElement = element.firstElementChild?.tagName;
-		
-		if (!tagElement || !order.includes(tagElement))
+	observer: MutationObserver;
+	classes: { [key: string]: string } = {
+		'dimmed': 'focus-plugin-dimmed',
+		'focus-animation': 'focus-plugin-focus-animation',
+		'dim-animation': 'focus-plugin-dim-animation'
+	}
+	focusHead: Element | null = null;
+	focusContents: Array<Element>;
+	order = ['H1', 'H2', 'H3', 'H4', 'H5'];
+
+	private findContents(headNode: Element, startNode: Element) {
+
+		let contents: Array<Element> = [];
+		let nextNode: Element | null = startNode;
+		let headTag = headNode.firstElementChild?.tagName;
+
+		if (!headTag || !this.order.includes(headTag))
 			return contents;
 
-		while (current) {
-			let tagCurrent = current.firstElementChild?.tagName;
-			if (tagCurrent && order.includes(tagCurrent) && order.indexOf(tagCurrent) <= order.indexOf(tagElement))
+		while (nextNode) {
+			let currentTag = nextNode.firstElementChild?.tagName;
+			if (currentTag && this.order.includes(currentTag) && this.order.indexOf(currentTag) <= this.order.indexOf(headTag))
 				break;
-			contents.push(current);
-			current = current.nextElementSibling;
+			contents.push(nextNode);
+			nextNode = nextNode.nextElementSibling;
 		}
 
 		return contents;
 	}
 
-	// focus() {
-	// 	if (!this.currentFocus)
-	// 		return;
-	// 	const contents = this.findContents(this.currentFocus);
-	// 	if 
-	// }
+
+	private clear() {
+		// remove all classes
+		for (let className in this.classes) {
+			Array.from(document.getElementsByClassName(this.classes[className])).forEach(element => {
+				element.classList.remove(this.classes[className]);
+			});
+		}
+		this.focusHead = null;
+		this.focusContents = [];
+	}
 
 	async onload() {
 		await this.loadSettings();
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
+			id: 'clear-focus',
+			name: 'Clear Focus',
 			callback: () => {
-				new SampleModal(this.app).open();
+				this.clear();
 			}
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+		this.addSettingTab(new FocusPluginSettingTab(this.app, this));
+
+
+		this.observer = new MutationObserver(mutations => {
+			mutations.forEach(mutation => {
+				if (!this.focusHead) {
+					this.clear();
+					return;
 				}
-			}
+				if (mutation.addedNodes.length > 0) {
+					let nextNode = this.focusContents[this.focusContents.length - 1]?.nextElementSibling ?? this.focusHead?.nextElementSibling;
+					if (nextNode) {
+						let newNodes = this.findContents(this.focusHead, nextNode);
+						newNodes.forEach(node => {
+							node.classList.remove(this.classes['dimmed']);
+						});
+						this.focusContents.push(...newNodes);
+					}
+					const allNodes = Array.from(document.getElementsByClassName('markdown-preview-section')[0].children);
+					allNodes.forEach(node => {
+						if (!this.focusContents.includes(node) && (node !== this.focusHead))
+							node.classList.add(this.classes['dimmed']);
+					});
+				}
+			});
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.registerEvent(this.app.workspace.on('layout-change', () => {
+			this.clear();
+			this.observer.disconnect();
+			let markdownView = this.app.workspace.getActiveViewOfType(MarkdownView)
+			if (markdownView && markdownView.getMode() === 'preview') {
+				console.log('focus-plugin: observing');
+				this.observer.observe(document.getElementsByClassName('markdown-preview-section')[0], {
+					childList: true,
+				});
+			}
+		}));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
+
 		this.registerDomEvent(document, 'click', async (evt: MouseEvent) => {
 			// only work under markdown preview
 			const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (!markdownView || (markdownView.getMode() !== 'preview') || !(evt.target instanceof Element))
 				return;
-			
-			// only work under headings and list
+
+			// restore
 			const element = evt.target;
+			if (this.settings.clearMethod === 'click-again') {
+				if (element.parentElement && this.focusHead && (element.parentElement == this.focusHead)) {
+					this.clear();
+					return;
+				}
+			}
+			else if (this.settings.clearMethod === 'click-outside') {
+				if (element.classList.contains('markdown-preview-view')) {
+					this.clear();
+					return;
+				}
+			}
+
+			// only work under headings for now
+			// TODO: add support for lists, code blocks, etc.
 			const block = element.parentElement;
-			console.log(block)
-			if (!block || !(element.hasAttribute('data-heading') || element.hasAttribute('data-line')))
+			if (!block || !(element.hasAttribute('data-heading')))
 				return;
+			this.focusHead = block;
 
-			// only work under multiple headings or list
-			const sibilings = block.parentElement?.children;
-			if (!sibilings)
-				return;
+			// set nextNode focus
+			let contents: Array<Element> = [];
+			if (block.nextElementSibling)
+				contents = this.findContents(block, block.nextElementSibling);
 
-			// restore when clicked again
-			// if (block === this.currentFocus)
-			// 	focus()
-			if (block === this.currentFocus) {
-				const dimmedEls = Array.from(document.getElementsByClassName('obsidian-focus-plugin-dimmed'));
-				for (let i = 0; i < dimmedEls.length; i++) {
-					dimmedEls[i].classList.remove('obsidian-focus-plugin-dimmed');
-					dimmedEls[i].classList.add('obsidian-focus-plugin-focus');
+			[block, ...contents].forEach(content => {
+				if (content.classList.contains(this.classes['dimmed'])) {
+					content.addEventListener('animationend', () => {
+						content.classList.remove(this.classes['focus-animation']);
+					}, { once: true });
+					content.classList.remove(this.classes['dimmed']);
+					content.classList.add(this.classes['focus-animation']);
 				}
-				this.currentFocus = null;
-				return;
-			}
+			});
+			this.focusContents = contents;
 
-			this.currentFocus = block;
-			let contentSiblings = this.findContents(block);
-			
-			for (let i = 0; i < contentSiblings.length; i++) {
-				if (contentSiblings[i].classList.contains('obsidian-focus-plugin-dimmed')) {
-					contentSiblings[i].classList.remove('obsidian-focus-plugin-dimmed')
-					contentSiblings[i].classList.add('obsidian-focus-plugin-focus');
-				}
-			}
-
-			// dim all sibiling elements
-			if (sibilings) {
-				console.log(sibilings)
-				for (let i = 0; i < sibilings.length; i++) {
-					const sibiling = sibilings[i];
-					if (!contentSiblings.includes(sibiling as HTMLElement)) {
-						sibiling.classList.add('obsidian-focus-plugin-dimmed');
-						sibiling.classList.remove('obsidian-focus-plugin-focus');
+			// set nextNode dim
+			const allNodes = Array.from(document.getElementsByClassName('markdown-preview-section')[0].children);
+			allNodes.forEach(node => {
+				if (!this.focusContents.includes(node) && (node !== this.focusHead)) {
+					if (!node.classList.contains(this.classes['dimmed'])) {
+						node.addEventListener('animationend', () => {
+							node.classList.remove(this.classes['dim-animation']);
+						}, { once: true });
+						node.classList.add(this.classes['dim-animation']);
+						node.classList.add(this.classes['dimmed']);
 					}
 				}
-			}
+			});
+
 		});
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-		// this.registerMarkdownPostProcessor((element, context) => {
-		// 	this.elements.push(element);
-		// 	console.log(element);
-		// })
 	}
 
 	onunload() {
-
+		this.observer.disconnect();
 	}
-
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
@@ -170,23 +176,7 @@ export default class FocusPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
+class FocusPluginSettingTab extends PluginSettingTab {
 	plugin: FocusPlugin;
 
 	constructor(app: App, plugin: FocusPlugin) {
@@ -199,18 +189,20 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Settings for my awesome plugin.' });
+		containerEl.createEl('h2', { text: 'Focus and Highlight Settings' });
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
+			.setName('Clear Method')
+			.setDesc('How to clear the focused elements')
+			.addDropdown(dropdown => dropdown.addOptions({
+				'click-again': 'Click again',
+				'click-outside': 'Click outside',
+			})
+				.setValue(this.plugin.settings.clearMethod)
+				.onChange(async (value: FocusPluginSettings["clearMethod"]) => {
+					this.plugin.settings.clearMethod = value;
 					await this.plugin.saveSettings();
+					console.log('focus-plugin: clear method changed to ' + value);
 				}));
 	}
 }
