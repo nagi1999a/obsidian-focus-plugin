@@ -52,6 +52,17 @@ export default class FocusPlugin extends Plugin {
 		this.focusContents = [];
 	}
 
+	observe() {
+		this.observer.disconnect();
+		let markdownView = this.app.workspace.getActiveViewOfType(MarkdownView)
+		if (markdownView && markdownView.getMode() === 'preview') {
+			console.log('focus-plugin: observing');
+			this.observer.observe(document.getElementsByClassName('markdown-preview-section')[0], {
+				childList: true,
+			});
+		}
+	}
+
 	async onload() {
 		await this.loadSettings();
 
@@ -92,14 +103,7 @@ export default class FocusPlugin extends Plugin {
 
 		this.registerEvent(this.app.workspace.on('layout-change', () => {
 			this.clear();
-			this.observer.disconnect();
-			let markdownView = this.app.workspace.getActiveViewOfType(MarkdownView)
-			if (markdownView && markdownView.getMode() === 'preview') {
-				console.log('focus-plugin: observing');
-				this.observer.observe(document.getElementsByClassName('markdown-preview-section')[0], {
-					childList: true,
-				});
-			}
+			this.observe();
 		}));
 
 
@@ -161,11 +165,13 @@ export default class FocusPlugin extends Plugin {
 				}
 			});
 
+			this.observe();
 		});
 	}
 
 	onunload() {
-		this.observer.disconnect();
+		this.clear();
+		// not disconnecting the observer since it will be needed to clear all remaining classes.
 	}
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
