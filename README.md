@@ -1,8 +1,8 @@
 # Focus and Highlight
-A plugin for [obsidian](https://obsidian.md/) to focus on  a specific paragraph in [Reading mode](https://help.obsidian.md/How+to/Read+and+edit+modes).
+A plugin for [obsidian](https://obsidian.md/) to focus on a specific paragraph in [Reading mode](https://help.obsidian.md/How+to/Read+and+edit+modes).
 
 ## Features
-- Focus on a specific heading and its children when clicking on headings.
+- Focus on a specific heading and its children when clicking on them.
 	- For now, focusing "only" on lists or other blocks is not supported.
 
 ![](demo.gif)
@@ -13,7 +13,7 @@ Before the plugin is added to the community plugin list, you need to do the foll
 2. Open `manual_install.zip` and copy `obsidian-focus-plugin` folder in to `.obsidian/plugins` folder.
 3. Enable the plugin named `Focus and Highlight` in Obsidian's `Settings > Community plugins` Tab.
 
-Once the plugin is installed and enabled, you can focus on different headings by clicking on any headings.
+Once the plugin is installed and enabled, you can focus on different headings by clicking on any of them.
 
 ## Options
 You can adjust the behavior of this plugin by accessing Obsidian's `Settings > Focus and Highlight` Tab.
