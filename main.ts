@@ -17,7 +17,7 @@ export default class FocusPlugin extends Plugin {
 		'dim-animation': 'focus-plugin-dim-animation'
 	}
 	focusHead: Element | null = null;
-	focusContents: Array<Element>;
+	focusContents: Set<Element> = new Set();
 	order = ['H1', 'H2', 'H3', 'H4', 'H5'];
 
 	private findContents(headNode: Element, startNode: Element) {
@@ -49,7 +49,7 @@ export default class FocusPlugin extends Plugin {
 			});
 		}
 		this.focusHead = null;
-		this.focusContents = [];
+		this.focusContents.clear();
 	}
 
 	observe() {
@@ -83,21 +83,25 @@ export default class FocusPlugin extends Plugin {
 					this.clear();
 					return;
 				}
+				
 				if (mutation.addedNodes.length > 0) {
-					let nextNode = this.focusContents[this.focusContents.length - 1]?.nextElementSibling ?? this.focusHead?.nextElementSibling;
-					if (nextNode) {
-						let newNodes = this.findContents(this.focusHead, nextNode);
-						newNodes.forEach(node => {
-							node.classList.remove(this.classes['dimmed']);
-						});
-						this.focusContents.push(...newNodes);
-					}
-					const allNodes = Array.from(document.getElementsByClassName('markdown-preview-section')[0].children);
-					allNodes.forEach(node => {
-						if (!this.focusContents.includes(node) && (node !== this.focusHead))
-							node.classList.add(this.classes['dimmed']);
-					});
+					[this.focusHead, ...this.focusContents].forEach(content => {
+						let nextNode = content.nextElementSibling;
+						if (nextNode) {
+							let newNodes = this.findContents(this.focusHead as Element, nextNode);
+							newNodes.forEach(node => {
+								node.classList.remove(this.classes['dimmed']);
+								this.focusContents.add(node);
+							});
+						}
+					})
 				}
+
+				const allNodes = Array.from(document.getElementsByClassName('markdown-preview-section')[0].children);
+				allNodes.forEach(node => {
+					if (!this.focusContents.has(node) && (node !== this.focusHead))
+						node.classList.add(this.classes['dimmed']);
+				});
 			});
 		});
 
@@ -149,12 +153,13 @@ export default class FocusPlugin extends Plugin {
 					content.classList.add(this.classes['focus-animation']);
 				}
 			});
-			this.focusContents = contents;
+			this.focusContents.clear();
+			contents.forEach(content => this.focusContents.add(content));
 
 			// set nextNode dim
 			const allNodes = Array.from(document.getElementsByClassName('markdown-preview-section')[0].children);
 			allNodes.forEach(node => {
-				if (!this.focusContents.includes(node) && (node !== this.focusHead)) {
+				if (!this.focusContents.has(node) && (node !== this.focusHead)) {
 					if (!node.classList.contains(this.classes['dimmed'])) {
 						node.addEventListener('animationend', () => {
 							node.classList.remove(this.classes['dim-animation']);
