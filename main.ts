@@ -8,20 +8,25 @@ const DEFAULT_SETTINGS: FocusPluginSettings = {
 	clearMethod: 'click-again'
 }
 
+interface FocusInfo {
+	focusHead: Element;
+	focusBody: Set<Element>;
+}
+
 export default class FocusPlugin extends Plugin {
 	settings: FocusPluginSettings;
 	observer: MutationObserver;
 	classes: { [key: string]: string } = {
+		'enabled': 'focus-plugin-enabled',
 		'dimmed': 'focus-plugin-dimmed',
 		'focus-animation': 'focus-plugin-focus-animation',
 		'dim-animation': 'focus-plugin-dim-animation'
 	}
-	focusHead: Element | null = null;
-	focusContents: Set<Element> = new Set();
-	order = ['H1', 'H2', 'H3', 'H4', 'H5'];
+	paneInfo: WeakMap<Element, FocusInfo> = new WeakMap();
+	order = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'];
+	observeHead: Element | null = null;
 
 	private findContents(headNode: Element, startNode: Element) {
-
 		let contents: Array<Element> = [];
 		let nextNode: Element | null = startNode;
 		let headTag = headNode.firstElementChild?.tagName;
@@ -41,25 +46,34 @@ export default class FocusPlugin extends Plugin {
 	}
 
 
-	private clear() {
-		// remove all classes
-		for (let className in this.classes) {
-			Array.from(document.getElementsByClassName(this.classes[className])).forEach(element => {
-				element.classList.remove(this.classes[className]);
-			});
+	private clear(all=false) {
+		if (all) {
+			document.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => node.classList.remove(this.classes['dimmed']));
+			this.paneInfo = new WeakMap();
 		}
-		this.focusHead = null;
-		this.focusContents.clear();
+		if (!this.observeHead)
+			return;
+
+		// remove dimmed class
+		this.observeHead.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => node.classList.remove(this.classes['dimmed']));
+
+		// remove focus information of active pane
+		this.paneInfo.delete(this.observeHead);
 	}
 
 	observe() {
+		// disconnect original observer
 		this.observer.disconnect();
-		let markdownView = this.app.workspace.getActiveViewOfType(MarkdownView)
-		if (markdownView && markdownView.getMode() === 'preview') {
+		
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (view && view.getMode() === 'preview') {
+			// update observe head
+			this.observeHead = view.contentEl.querySelector('.markdown-preview-section') as Element;
+			
+			// observe new head node
+			this.observer.observe(this.observeHead, { childList: true });
+
 			console.log('focus-plugin: observing');
-			this.observer.observe(document.getElementsByClassName('markdown-preview-section')[0], {
-				childList: true,
-			});
 		}
 	}
 
@@ -76,30 +90,32 @@ export default class FocusPlugin extends Plugin {
 
 		this.addSettingTab(new FocusPluginSettingTab(this.app, this));
 
+		document.body.classList.add(this.classes['enabled']);
 
 		this.observer = new MutationObserver(mutations => {
 			mutations.forEach(mutation => {
-				if (!this.focusHead) {
+				if (!this.observeHead || !this.paneInfo.has(this.observeHead)) {
 					this.clear();
 					return;
 				}
 				
+				const focusInfo = this.paneInfo.get(this.observeHead) as FocusInfo;
 				if (mutation.addedNodes.length > 0) {
-					[this.focusHead, ...this.focusContents].forEach(content => {
+					[focusInfo.focusHead, ...focusInfo.focusBody].forEach(content => {
 						let nextNode = content.nextElementSibling;
 						if (nextNode) {
-							let newNodes = this.findContents(this.focusHead as Element, nextNode);
+							let newNodes = this.findContents(focusInfo.focusHead, nextNode);
 							newNodes.forEach(node => {
 								node.classList.remove(this.classes['dimmed']);
-								this.focusContents.add(node);
+								focusInfo.focusBody.add(node);
 							});
 						}
 					})
 				}
 
-				const allNodes = Array.from(document.getElementsByClassName('markdown-preview-section')[0].children);
+				const allNodes = Array.from(this.observeHead.children);
 				allNodes.forEach(node => {
-					if (!this.focusContents.has(node) && (node !== this.focusHead))
+					if (!focusInfo.focusBody.has(node) && (node !== focusInfo.focusHead))
 						node.classList.add(this.classes['dimmed']);
 				});
 			});
@@ -107,39 +123,50 @@ export default class FocusPlugin extends Plugin {
 
 		this.registerEvent(this.app.workspace.on('layout-change', () => {
 			this.clear();
+		}));
+
+		this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
+			console.log('focus-plugin: active leaf changed');
 			this.observe();
 		}));
 
-
 		this.registerDomEvent(document, 'click', async (evt: MouseEvent) => {
+			console.log('focus-plugin: click');
 			// only work under markdown preview
 			const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-			if (!markdownView || (markdownView.getMode() !== 'preview') || !(evt.target instanceof Element))
+			if (!markdownView || (markdownView.getMode() !== 'preview') || !(evt.target instanceof Element) || !this.observeHead)
 				return;
 
-			// restore
 			const element = evt.target;
-			if (this.settings.clearMethod === 'click-again') {
-				if (element.parentElement && this.focusHead && (element.parentElement == this.focusHead)) {
-					this.clear();
-					return;
-				}
-			}
-			else if (this.settings.clearMethod === 'click-outside') {
-				if (element.classList.contains('markdown-preview-view')) {
-					this.clear();
-					return;
+			const block = element.parentElement;
+			
+			// restore
+			if (this.paneInfo.get(this.observeHead)) {
+				const focusInfo = this.paneInfo.get(this.observeHead) as FocusInfo;
+				switch (this.settings.clearMethod) {
+					case 'click-again':
+						if (block && focusInfo.focusHead && (block === focusInfo.focusHead)) {
+							this.clear();
+							return;
+						}
+						break;
+					case 'click-outside':
+						if (element.classList.contains('markdown-preview-view')) {
+							this.clear();
+							return;
+						}
+						break;
 				}
 			}
 
 			// only work under headings for now
 			// TODO: add support for lists, code blocks, etc.
-			const block = element.parentElement;
 			if (!block || !(element.hasAttribute('data-heading')))
 				return;
-			this.focusHead = block;
+			
+			let focusInfo = { focusHead: block, focusBody: new Set<Element>() };
 
-			// set nextNode focus
+			// set focus
 			let contents: Array<Element> = [];
 			if (block.nextElementSibling)
 				contents = this.findContents(block, block.nextElementSibling);
@@ -153,13 +180,13 @@ export default class FocusPlugin extends Plugin {
 					content.classList.add(this.classes['focus-animation']);
 				}
 			});
-			this.focusContents.clear();
-			contents.forEach(content => this.focusContents.add(content));
+
+			contents.forEach(content => focusInfo.focusBody.add(content));
 
 			// set nextNode dim
-			const allNodes = Array.from(document.getElementsByClassName('markdown-preview-section')[0].children);
+			const allNodes = Array.from(this.observeHead.children);
 			allNodes.forEach(node => {
-				if (!this.focusContents.has(node) && (node !== this.focusHead)) {
+				if (!focusInfo.focusBody.has(node) && (node !== focusInfo.focusHead)) {
 					if (!node.classList.contains(this.classes['dimmed'])) {
 						node.addEventListener('animationend', () => {
 							node.classList.remove(this.classes['dim-animation']);
@@ -169,15 +196,21 @@ export default class FocusPlugin extends Plugin {
 					}
 				}
 			});
-
-			this.observe();
+			
+			this.paneInfo.set(this.observeHead, focusInfo);
 		});
+
+		this.observe();
 	}
 
 	onunload() {
-		this.clear();
-		// not disconnecting the observer since it will be needed to clear all remaining classes.
+		// tricky but quick way to disable all css classes
+		document.body.classList.remove(this.classes['enabled']);
+		
+		// try to remove viewable dimmed classes, solve reenable issue
+		this.clear(true);
 	}
+
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
