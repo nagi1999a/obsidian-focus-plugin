@@ -83,16 +83,14 @@ export default class FocusPlugin extends Plugin {
 		this.paneInfo.delete(this.observeHead);
 	}
 
-	observe() {
-		// disconnect original observer
-		this.observer.disconnect();
-		
+	observe() {		
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view && view.getMode() === 'preview') {
 			// update observe head
 			this.observeHead = view.contentEl.querySelector('.markdown-preview-section') as Element;
 			
 			// observe new head node
+			// Note: no need to check if the observeHead is already observing, ref: https://developer.mozilla.org/zh-TW/docs/Web/API/MutationObserver#observe()
 			this.observer.observe(this.observeHead, { childList: true });
 
 			console.log('focus-plugin: observing');
@@ -114,14 +112,15 @@ export default class FocusPlugin extends Plugin {
 
 		document.body.classList.add(this.classes['enabled']);
 
-		this.observer = new MutationObserver(mutations => {
+		this.observer = new MutationObserver((mutations) => {
 			mutations.forEach(mutation => {
-				if (!this.observeHead || !this.paneInfo.has(this.observeHead)) {
+				const observeHead = mutation.target as Element;
+				if (!this.paneInfo.has(observeHead)) {
 					this.clear(false, false);
 					return;
 				}
 				
-				const focusInfo = this.paneInfo.get(this.observeHead) as FocusInfo;
+				const focusInfo = this.paneInfo.get(observeHead) as FocusInfo;
 				if (mutation.addedNodes.length > 0) {
 					[focusInfo.focusHead, ...focusInfo.focusBody].forEach(content => {
 						let nextNode = content.nextElementSibling;
@@ -135,7 +134,7 @@ export default class FocusPlugin extends Plugin {
 					})
 				}
 
-				const allNodes = Array.from(this.observeHead.children);
+				const allNodes = Array.from(observeHead.children);
 				allNodes.forEach(node => {
 					if (!focusInfo.focusBody.has(node) && (node !== focusInfo.focusHead))
 						this.dim_node(node, false);
@@ -153,7 +152,6 @@ export default class FocusPlugin extends Plugin {
 		}));
 
 		this.registerDomEvent(document, 'click', async (evt: MouseEvent) => {
-			console.log('focus-plugin: click');
 			// only work under markdown preview
 			const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (!markdownView || (markdownView.getMode() !== 'preview') || !(evt.target instanceof Element) || !this.observeHead)
@@ -163,7 +161,7 @@ export default class FocusPlugin extends Plugin {
 			const block = element.parentElement;
 			
 			// restore
-			if (this.paneInfo.get(this.observeHead)) {
+			if (this.paneInfo.has(this.observeHead)) {
 				const focusInfo = this.paneInfo.get(this.observeHead) as FocusInfo;
 				switch (this.settings.clearMethod) {
 					case 'click-again':
@@ -221,6 +219,8 @@ export default class FocusPlugin extends Plugin {
 		
 		// try to remove viewable dimmed classes, solve reenable issue
 		this.clear(true, false);
+
+		// still not disconnect the observer, or it will cause problems when re-enabling plugin.
 	}
 
 	async loadSettings() {
