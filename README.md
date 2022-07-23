@@ -13,6 +13,8 @@ Before the plugin is added to the community plugin list, you need to do the foll
 2. Open `manual_install.zip` and copy `obsidian-focus-plugin` folder in to `.obsidian/plugins` folder.
 3. Enable the plugin named `Focus and Highlight` in Obsidian's `Settings > Community plugins` Tab.
 
+You can also install with [BRAT](https://github.com/TfTHacker/obsidian42-brat), with the repository name `nagi1999a/obsidian-focus-plugin`
+
 Once the plugin is installed and enabled, you can focus on different headings by clicking on any of them.
 
 ## Options
