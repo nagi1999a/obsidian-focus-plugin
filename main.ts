@@ -65,30 +65,26 @@ export default class FocusPlugin extends Plugin {
 		node.classList.remove(this.classes['dimmed']);
 	}
 
-	private clear(all: boolean, animation: boolean) {
-		if (all) {
+	private clear(target: Element | null, animation: boolean) {
+		if (!target) {
 			document.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => this.undim_node(node, animation));
 			this.paneInfo = new WeakMap();
 			return;
 		}
 
-		// quick exit
-		if (!this.observeHead)
-			return;
-
 		// remove dimmed class
-		this.observeHead.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => this.undim_node(node, animation));
+		target.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => this.undim_node(node, animation));
 
-		// remove focus information of active pane
-		this.paneInfo.delete(this.observeHead);
+		// remove focus information
+		this.paneInfo.delete(target);
 	}
 
-	observe() {		
+	observe() {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view && view.getMode() === 'preview') {
 			// update observe head
 			this.observeHead = view.contentEl.querySelector('.markdown-preview-section') as Element;
-			
+
 			// observe new head node
 			// Note: no need to check if the observeHead is already observing, ref: https://developer.mozilla.org/zh-TW/docs/Web/API/MutationObserver#observe()
 			this.observer.observe(this.observeHead, { childList: true });
@@ -104,7 +100,7 @@ export default class FocusPlugin extends Plugin {
 			id: 'clear-focus',
 			name: 'Clear Focus',
 			callback: () => {
-				this.clear(true, false);
+				this.clear(null, false);
 			}
 		});
 
@@ -116,10 +112,10 @@ export default class FocusPlugin extends Plugin {
 			mutations.forEach(mutation => {
 				const observeHead = mutation.target as Element;
 				if (!this.paneInfo.has(observeHead)) {
-					this.clear(false, false);
+					this.clear(observeHead, false);
 					return;
 				}
-				
+
 				const focusInfo = this.paneInfo.get(observeHead) as FocusInfo;
 				if (mutation.addedNodes.length > 0) {
 					[focusInfo.focusHead, ...focusInfo.focusBody].forEach(content => {
@@ -143,8 +139,9 @@ export default class FocusPlugin extends Plugin {
 		});
 
 		this.registerEvent(this.app.workspace.on('layout-change', () => {
-			this.clear(false, false);
+			// TODO: Preserve state when open a new pane
 			this.observe();
+			this.clear(this.observeHead, false);
 		}));
 
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
@@ -159,20 +156,20 @@ export default class FocusPlugin extends Plugin {
 
 			const element = evt.target;
 			const block = element.parentElement;
-			
+
 			// restore
 			if (this.paneInfo.has(this.observeHead)) {
 				const focusInfo = this.paneInfo.get(this.observeHead) as FocusInfo;
 				switch (this.settings.clearMethod) {
 					case 'click-again':
 						if (block && focusInfo.focusHead && (block === focusInfo.focusHead)) {
-							this.clear(false, true);
+							this.clear(this.observeHead, true);
 							return;
 						}
 						break;
 					case 'click-outside':
 						if (element.classList.contains('markdown-preview-view')) {
-							this.clear(false, true);
+							this.clear(this.observeHead, true);
 							return;
 						}
 						break;
@@ -183,7 +180,7 @@ export default class FocusPlugin extends Plugin {
 			// TODO: add support for lists, code blocks, etc.
 			if (!block || !(element.hasAttribute('data-heading')))
 				return;
-			
+
 			let focusInfo = { focusHead: block, focusBody: new Set<Element>() };
 
 			// set focus
@@ -206,7 +203,7 @@ export default class FocusPlugin extends Plugin {
 						this.dim_node(node, true);
 				}
 			});
-			
+
 			this.paneInfo.set(this.observeHead, focusInfo);
 		});
 
@@ -216,9 +213,9 @@ export default class FocusPlugin extends Plugin {
 	onunload() {
 		// tricky but quick way to disable all css classes
 		document.body.classList.remove(this.classes['enabled']);
-		
+
 		// try to remove viewable dimmed classes, solve reenable issue
-		this.clear(true, false);
+		this.clear(null, false);
 
 		// still not disconnect the observer, or it will cause problems when re-enabling plugin.
 	}
