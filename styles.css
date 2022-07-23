@@ -1,12 +1,12 @@
-.focus-plugin-dimmed {
+body.focus-plugin-enabled .focus-plugin-dimmed {
     opacity: 0.1;
 }
 
-.focus-plugin-focus-animation {
+body.focus-plugin-enabled .focus-plugin-focus-animation {
     animation: focus-plugin-keyframes 0.5s both ease-in-out;
 }
 
-.focus-plugin-dim-animation {
+body.focus-plugin-enabled .focus-plugin-dim-animation {
     animation: focus-plugin-keyframes 0.5s reverse both ease-in-out;
 }
 
