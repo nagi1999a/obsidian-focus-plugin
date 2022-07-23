@@ -45,17 +45,39 @@ export default class FocusPlugin extends Plugin {
 		return contents;
 	}
 
-
-	private clear(all=false) {
-		if (all) {
-			document.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => node.classList.remove(this.classes['dimmed']));
-			this.paneInfo = new WeakMap();
+	private dim_node(node: Element, animation: boolean) {
+		if (animation) {
+			node.addEventListener('animationend', () => {
+				node.classList.remove(this.classes['dim-animation']);
+			}, { once: true });
+			node.classList.add(this.classes['dim-animation']);
 		}
+		node.classList.add(this.classes['dimmed']);
+	}
+
+	private undim_node(node: Element, animation: boolean) {
+		if (animation) {
+			node.addEventListener('animationend', () => {
+				node.classList.remove(this.classes['focus-animation']);
+			}, { once: true });
+			node.classList.add(this.classes['focus-animation']);
+		}
+		node.classList.remove(this.classes['dimmed']);
+	}
+
+	private clear(all: boolean, animation: boolean) {
+		if (all) {
+			document.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => this.undim_node(node, animation));
+			this.paneInfo = new WeakMap();
+			return;
+		}
+
+		// quick exit
 		if (!this.observeHead)
 			return;
 
 		// remove dimmed class
-		this.observeHead.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => node.classList.remove(this.classes['dimmed']));
+		this.observeHead.querySelectorAll(`.${this.classes['dimmed']}`).forEach(node => this.undim_node(node, animation));
 
 		// remove focus information of active pane
 		this.paneInfo.delete(this.observeHead);
@@ -84,7 +106,7 @@ export default class FocusPlugin extends Plugin {
 			id: 'clear-focus',
 			name: 'Clear Focus',
 			callback: () => {
-				this.clear();
+				this.clear(true, false);
 			}
 		});
 
@@ -95,7 +117,7 @@ export default class FocusPlugin extends Plugin {
 		this.observer = new MutationObserver(mutations => {
 			mutations.forEach(mutation => {
 				if (!this.observeHead || !this.paneInfo.has(this.observeHead)) {
-					this.clear();
+					this.clear(false, false);
 					return;
 				}
 				
@@ -106,7 +128,7 @@ export default class FocusPlugin extends Plugin {
 						if (nextNode) {
 							let newNodes = this.findContents(focusInfo.focusHead, nextNode);
 							newNodes.forEach(node => {
-								node.classList.remove(this.classes['dimmed']);
+								this.undim_node(node, false);
 								focusInfo.focusBody.add(node);
 							});
 						}
@@ -116,13 +138,13 @@ export default class FocusPlugin extends Plugin {
 				const allNodes = Array.from(this.observeHead.children);
 				allNodes.forEach(node => {
 					if (!focusInfo.focusBody.has(node) && (node !== focusInfo.focusHead))
-						node.classList.add(this.classes['dimmed']);
+						this.dim_node(node, false);
 				});
 			});
 		});
 
 		this.registerEvent(this.app.workspace.on('layout-change', () => {
-			this.clear();
+			this.clear(false, false);
 		}));
 
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
@@ -146,13 +168,13 @@ export default class FocusPlugin extends Plugin {
 				switch (this.settings.clearMethod) {
 					case 'click-again':
 						if (block && focusInfo.focusHead && (block === focusInfo.focusHead)) {
-							this.clear();
+							this.clear(false, true);
 							return;
 						}
 						break;
 					case 'click-outside':
 						if (element.classList.contains('markdown-preview-view')) {
-							this.clear();
+							this.clear(false, true);
 							return;
 						}
 						break;
@@ -171,14 +193,9 @@ export default class FocusPlugin extends Plugin {
 			if (block.nextElementSibling)
 				contents = this.findContents(block, block.nextElementSibling);
 
-			[block, ...contents].forEach(content => {
-				if (content.classList.contains(this.classes['dimmed'])) {
-					content.addEventListener('animationend', () => {
-						content.classList.remove(this.classes['focus-animation']);
-					}, { once: true });
-					content.classList.remove(this.classes['dimmed']);
-					content.classList.add(this.classes['focus-animation']);
-				}
+			[block, ...contents].forEach(node => {
+				if (node.classList.contains(this.classes['dimmed']))
+					this.undim_node(node, true);
 			});
 
 			contents.forEach(content => focusInfo.focusBody.add(content));
@@ -187,13 +204,8 @@ export default class FocusPlugin extends Plugin {
 			const allNodes = Array.from(this.observeHead.children);
 			allNodes.forEach(node => {
 				if (!focusInfo.focusBody.has(node) && (node !== focusInfo.focusHead)) {
-					if (!node.classList.contains(this.classes['dimmed'])) {
-						node.addEventListener('animationend', () => {
-							node.classList.remove(this.classes['dim-animation']);
-						}, { once: true });
-						node.classList.add(this.classes['dim-animation']);
-						node.classList.add(this.classes['dimmed']);
-					}
+					if (!node.classList.contains(this.classes['dimmed']))
+						this.dim_node(node, true);
 				}
 			});
 			
@@ -208,7 +220,7 @@ export default class FocusPlugin extends Plugin {
 		document.body.classList.remove(this.classes['enabled']);
 		
 		// try to remove viewable dimmed classes, solve reenable issue
-		this.clear(true);
+		this.clear(true, false);
 	}
 
 	async loadSettings() {
