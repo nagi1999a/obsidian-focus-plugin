@@ -27,5 +27,21 @@ Clear the focus state by clicking again on the focused heading.
 #### Click Outside
 Clear the focus state by clicking on the blank area at the left or right side of the reading area, which may not work correctly when `Settings > Editor > Readable line length` is turned off.
 
+### Style Settings
+With the [Style Settings](https://github.com/mgmeyers/obsidian-style-settings) plugin installed and enabled, you can further customize some visual properties under `Settings > Style Settings > Focus and Highlight`.
+
+#### Dim Opacity
+Set the opacity of dimmed elements. Default is 0.1.
+
+#### Dim Speed
+Set the speed of the animation in seconds. Default is 0.5.
+
 ## Discussion
+
+### Mutiple panes behavior
+The plugin now supports multi-pane scenarios. Different panes will be able to focus on their headings, as the following GIF shows.
+
+![](multi_pane.gif)
+
+### Issues
 If you encounter any problems or have suggestions about the plugin, please feel free to open issues.
