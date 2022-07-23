@@ -145,10 +145,10 @@ export default class FocusPlugin extends Plugin {
 
 		this.registerEvent(this.app.workspace.on('layout-change', () => {
 			this.clear(false, false);
+			this.observe();
 		}));
 
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
-			console.log('focus-plugin: active leaf changed');
 			this.observe();
 		}));
 
