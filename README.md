@@ -13,7 +13,7 @@ Before the plugin is added to the community plugin list, you need to do the foll
 2. Open `manual_install.zip` and copy `obsidian-focus-plugin` folder in to `.obsidian/plugins` folder.
 3. Enable the plugin named `Focus and Highlight` in Obsidian's `Settings > Community plugins` Tab.
 
-You can also install with [BRAT](https://github.com/TfTHacker/obsidian42-brat), with the repository name `nagi1999a/obsidian-focus-plugin`
+You can also install with [BRAT](https://github.com/TfTHacker/obsidian42-brat), with the repository name `nagi1999a/obsidian-focus-plugin`.
 
 Once the plugin is installed and enabled, you can focus on different headings by clicking on any of them.
 
@@ -40,7 +40,7 @@ Set the speed of the animation in seconds. Default is 0.5.
 
 ## Discussion
 
-### Mutiple panes behavior
+### Behavior under Mutiple Panes
 The plugin now supports multi-pane scenarios. Different panes will be able to focus on their headings, as the following GIF shows.
 
 ![](multi_pane.gif)
