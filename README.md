@@ -8,12 +8,9 @@ A plugin for [obsidian](https://obsidian.md/) to focus on a specific paragraph i
 ![](demo.gif)
 
 ## Usage
-Before the plugin is added to the community plugin list, you need to do the following task to install the plugin:
-1. Download the `manual_install.zip` on the release page.
-2. Open `manual_install.zip` and copy `obsidian-focus-plugin` folder in to `.obsidian/plugins` folder.
-3. Enable the plugin named `Focus and Highlight` in Obsidian's `Settings > Community plugins` Tab.
-
-You can also install with [BRAT](https://github.com/TfTHacker/obsidian42-brat), with the repository name `nagi1999a/obsidian-focus-plugin`.
+1. The plugin is now available in community plugins list! You can download the plugin directly through Obsidian's `Settings > Community plugins` Tab.
+	- You can also install with [BRAT](https://github.com/TfTHacker/obsidian42-brat), with the repository name `nagi1999a/obsidian-focus-plugin`.
+2. Enable the plugin named `Focus and Highlight` in Obsidian's `Settings > Community plugins` Tab.
 
 Once the plugin is installed and enabled, you can focus on different headings by clicking on any of them.
 
