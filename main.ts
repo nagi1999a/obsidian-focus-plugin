@@ -154,7 +154,10 @@ export default class FocusPlugin extends Plugin {
 			if (!markdownView || (markdownView.getMode() !== 'preview') || !(evt.target instanceof Element) || !this.observeHead)
 				return;
 
-			const element = evt.target;
+			// try to use parent if it's not a heading (to support clicking on inline blocks in headings)
+			const element = evt.target.hasAttribute('data-heading')
+				? evt.target
+				: evt.target.parentElement || evt.target;
 			const block = element.parentElement;
 
 			// restore
