@@ -171,7 +171,8 @@ export default class FocusPlugin extends Plugin {
 						}
 						break;
 					case 'click-outside':
-						if (element.classList.contains('markdown-preview-view')) {
+						// Since the element will fallback to parent, we need to check the parent class
+						if (element.classList.contains('markdown-reading-view')) {
 							this.clear(this.observeHead, true);
 							return;
 						}
