@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-focus-plugin",
-	"version": "1.1.4",
+	"version": "1.1.5",
 	"description": "A plugin for Obsidian (https://obsidian.md) that will highlight and focus on the currently selected heading",
 	"main": "main.js",
 	"scripts": {
