@@ -49,7 +49,6 @@ export default class FocusPlugin extends Plugin {
 		this.addSettingTab(new FocusPluginSettingTab(this.app, this));
 
 		this.registerEvent(this.app.workspace.on('layout-change', () => {
-			console.log('layout-change');
 
 			let paneState = this.getPaneState();
 			if (!paneState || paneState.mode !== 'preview')
@@ -59,17 +58,12 @@ export default class FocusPlugin extends Plugin {
 		}));
 
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
-			console.log('active-leaf-change')
 
 			let paneState = this.getPaneState();
 			if (!paneState || paneState.mode !== 'preview')
 				return;
 
 			this.focusManager.changePane(paneState.head);
-		}));
-
-		this.registerEvent(this.app.metadataCache.on('resolved', () => {
-			console.log('resolved')
 		}));
 
 		this.registerDomEvent(document, 'click', async (evt: MouseEvent) => {

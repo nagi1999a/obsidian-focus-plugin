@@ -59,9 +59,7 @@ export class FocusManager {
                     this.dim(Array.from(pane.children || []).filter(element => (element !== info.block) && !(info.body.has(element))), false);
                 }
                 else if (isIntermediateFocusInfo(info)) {
-                    this.processIntermediate(pane, info);
-                    // dim other blocks
-                    this.dim(Array.from(pane.children || []).filter(element => (element !== info.target)), false);
+                    this.processIntermediate(pane, info, false);
                 }
                 else
                     return
@@ -115,7 +113,6 @@ export class FocusManager {
         let body: Array<Element> = [];
         let cursor: Element | null = startElement;
         let cursorTag: string | undefined;
-        console.log(this.includeBody)
         while (cursor !== null) {
             cursorTag = cursor.firstElementChild?.tagName;
             if (this.includeBody && cursorTag && supportTags.includes(cursorTag) && supportTags.indexOf(cursorTag) <= supportTags.indexOf(headTag))
@@ -129,7 +126,7 @@ export class FocusManager {
         return body;
     }
 
-    private processIntermediate(pane: Element, info: IntermediateFocusInfo) {
+    private processIntermediate(pane: Element, info: IntermediateFocusInfo, animation: boolean = true) {
         // undim
         [info.target, ...info.after].forEach(element => {
             if (element.nextElementSibling !== null) {
@@ -238,10 +235,10 @@ export class FocusManager {
             this.paneInfo.set(pane, content);
         }
         else {
-            this.undim([content.target], true);
             this.processIntermediate(pane, content);
+            this.paneInfo.set(pane, content);
         }
-
+        this.observer.observe(pane, { childList: true });
     }
 
     changePane(pane: Element) {
