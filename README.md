@@ -3,7 +3,8 @@ A plugin for [obsidian](https://obsidian.md/) to focus on a specific paragraph i
 
 ## Features
 - Focus on a specific heading and its children when clicking on them.
-	- For now, focusing "only" on lists or other blocks is not supported.
+	- Start from v1.2.0, you can also focus on a specific paragraph by change the setting `Content Behavior` to `Only Focus the Element`.
+	- Start from v1.2.0, you can focus by clicking the children of a heading.
 
 ![](demo.gif)
 
@@ -26,6 +27,24 @@ Clear the focus state by clicking again on the focused heading.
 #### Click Outside
 Clear the focus state by clicking on the blank area at the left or right side of the reading area, which may not work correctly when `Settings > Editor > Readable line length` is turned off.
 
+### Focus Scope
+This option affects the scope of the focus state.
+
+#### Only One Block
+Focus only the block you clicked on.
+
+#### Also the Content
+Focus the block you clicked on and related contents.
+
+### Content Behavior
+This option affects the behavior when clicking on the content elements, e.g. pure text, callout block, etc.
+
+#### Only Focus the Element
+Focus only the element you clicked on.
+
+#### Focus Related Contents
+Focus the element you clicked on and related contents.
+
 ### Style Settings
 With the [Style Settings](https://github.com/mgmeyers/obsidian-style-settings) plugin installed and enabled, you can further customize some visual properties under `Settings > Style Settings > Focus and Highlight`.
 
@@ -44,3 +63,11 @@ The plugin now supports multi-pane scenarios. Different panes will be able to fo
 
 ### Issues
 If you encounter any problems or have suggestions about the plugin, please feel free to open issues.
+
+### TODO
+- [ ] Add support in edit mode.
+### Support
+> [!NOTE] Maintain a plugin is not an easy task.
+> If you like this plugin, please consider the following methods to support the author:
+> 1. Give me a star!
+> 2. [Buy me a coffee](https://www.buymeacoffee.com/nagi1999a)!
