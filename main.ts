@@ -11,7 +11,7 @@ interface FocusPluginSettings {
 
 const DEFAULT_SETTINGS: FocusPluginSettings = {
 	clearMethod: 'click-again',
-	contentBehavior: 'content',
+	contentBehavior: 'none',
 	focusScope: 'content',
 	enableList: false,
 }
