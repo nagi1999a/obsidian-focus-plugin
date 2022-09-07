@@ -1,57 +1,86 @@
-import { FocusInfoBase, FocusInfo, supportTags, IntermediateFocusInfo } from 'utils/types'
 import { FocusPluginLogger } from 'utils/log'
+import { CachedMetadata } from "obsidian";
+export interface FocusInfoBase {
+    block: Element;
+    type: string;
+}
 
-export function getFocusInfo(el: Element): IntermediateFocusInfo | FocusInfo | null {
-    let focusTarget: Element | null = null;
-    let focusBlock: Element | null = null;
+export interface HeaderFocusInfo extends FocusInfoBase {
+    body: Set<Element>;
+}
+
+export interface ListFocusInfo extends FocusInfoBase {
+    target: Element;
+}
+
+export interface IntermediateFocusInfo extends FocusInfoBase {
+    before: Set<Element>;
+    after: Set<Element>;
+    metadata: CachedMetadata | null;
+    level: number | null;
+}
+
+export function isHeaderFocusInfo(info: FocusInfoBase | undefined | null): info is HeaderFocusInfo {
+    return !!info && info.type.startsWith('H');
+}
+
+export function isListFocusInfo(info: FocusInfoBase | undefined | null): info is ListFocusInfo {
+    return !!info && info.type === 'LI';
+}
+
+export function isIntermediateFocusInfo(info: FocusInfoBase | undefined | null): info is IntermediateFocusInfo {
+    return !!info && info.type === 'UNKNOWN';
+}
+
+export function getFocusInfo(el: Element): HeaderFocusInfo | ListFocusInfo | IntermediateFocusInfo | null {
     let focusType: string | null = null;
+    let focusBlock: Element | null = null;
+    let focusTarget: Element | null = null;
 
     let cursor: Element | null = el;
     while ((cursor !== null) && !(cursor.hasClass('markdown-preview-section'))) {
-        if (supportTags.includes(cursor.tagName)) {
-            focusTarget = cursor;
-            focusType = cursor.tagName as typeof supportTags[number];
-            break;
+        if (cursor.tagName.match(/^H[1-6]$/)) {
+            focusType = cursor.tagName;
         }
-        cursor = cursor.parentElement;
-    }
+        else if (cursor.tagName === 'LI') {
+            focusType = 'LI';
+            focusTarget = cursor;
+        }
 
-    if (focusTarget === null || focusType === null)
-        cursor = el;
-
-    while ((cursor !== null) && (cursor.parentElement !== null)) {
-        if (cursor.parentElement.hasClass('markdown-preview-section')) {
+        if (cursor.parentElement?.hasClass('markdown-preview-section')) {
             focusBlock = cursor;
             break;
         }
+
         cursor = cursor.parentElement;
     }
 
     if (focusBlock === null)
         return null;
-
-    if (focusTarget === null || focusType === null)
+    
+    if (focusType === null) 
         return {
             before: new Set(),
             after: new Set(),
-            target: focusBlock,
+            block: focusBlock,
             type: 'UNKNOWN',
             metadata: null,
             level: null
         }
-    else
+    else if (focusType.match(/^H[1-6]$/))
         return {
-            target: focusTarget,
             block: focusBlock,
             type: focusType,
             body: new Set()
         }
-}
-
-export function isFocusInfo(info: FocusInfoBase | null | undefined): info is FocusInfo {
-    return info !== null && info !== undefined && supportTags.includes(info.type);
-}
-
-export function isIntermediateFocusInfo(info: FocusInfoBase | null | undefined): info is IntermediateFocusInfo {
-    return info !== null && info !== undefined && info.type === 'UNKNOWN';
+    else if (focusType === 'LI')
+        return {
+            block: focusBlock,
+            type: focusType,
+            target: focusTarget as Element,
+            body: new Set()
+        }
+    else
+        FocusPluginLogger.log('Error', `Unexpected focus type: ${focusType}`);
+        return null;
 }

@@ -1,7 +1,6 @@
-import { FocusInfoBase, FocusInfo, supportTags, IntermediateFocusInfo } from 'utils/types'
 import { FocusPluginLogger } from 'utils/log'
 import { CachedMetadata } from 'obsidian';
-import { isFocusInfo, isIntermediateFocusInfo } from 'utils/info';
+import { FocusInfoBase, HeaderFocusInfo, ListFocusInfo, IntermediateFocusInfo, isHeaderFocusInfo, isListFocusInfo, isIntermediateFocusInfo } from 'utils/info';
 
 
 export class FocusManager {
@@ -17,54 +16,16 @@ export class FocusManager {
         mutations.forEach(mutation => {
             if (mutation.addedNodes.length > 0) {
                 const pane = mutation.target as Element;
-                if (!this.paneInfo.has(pane)) {
+                const info = this.paneInfo.get(pane)
+                if (!info) {
                     this.clear(pane);
                     return;
                 }
 
-                const info = this.paneInfo.get(pane);
-                
-                if (isFocusInfo(info)) {
-                    switch (info.type) {
-                        case 'H1':
-                        case 'H2':
-                        case 'H3':
-                        case 'H4':
-                        case 'H5':
-                        case 'H6':
-                            // undim
-                            [info.block, ...info.body].forEach(element => {
-                                if (element.nextElementSibling !== null) {
-                                    let newNodes = this.findBody(info.type, element.nextElementSibling);
-                                    this.undim(newNodes, false);
-                                    newNodes.forEach(el => info.body.add(el));
-                                }
-                            })
-
-                            break;
-                        
-                        case 'LI':
-                            // no need to undim, since the all the body elements will be children of the target element
-                            
-                            // dim siblings
-                            this.dim(Array.from(info.target.parentElement?.children || []).filter(element => element !== info.target), false);
-
-                            break;
-                        default:
-                            FocusPluginLogger.log('Error', 'Unknown focus type');
-                            break;
-                    }
-                    // dim other blocks
-
-                    this.dim(Array.from(pane.children || []).filter(element => (element !== info.block) && !(info.body.has(element))), false);
-                }
-                else if (isIntermediateFocusInfo(info)) {
+                if (isIntermediateFocusInfo(info))
                     this.processIntermediate(pane, info, false);
-                }
                 else
-                    return
-                
-                
+                    this.process(pane, info, false);
             }
         });
     });
@@ -109,30 +70,51 @@ export class FocusManager {
         dimmed_elements.forEach(element => element.classList.remove(this.classes['dimmed']));
     }
 
-    private findBody(headTag: string, startElement: Element): Array<Element> {
-        let body: Array<Element> = [];
-        let cursor: Element | null = startElement;
-        let cursorTag: string | undefined;
-        while (cursor !== null) {
-            cursorTag = cursor.firstElementChild?.tagName;
-            if (this.includeBody && cursorTag && supportTags.includes(cursorTag) && supportTags.indexOf(cursorTag) <= supportTags.indexOf(headTag))
-                break;
-            else if (!this.includeBody && cursorTag && supportTags.includes(cursorTag))
-                break;
-            body.push(cursor);
-            cursor = cursor.nextElementSibling;
+    private process(pane: Element, info: FocusInfoBase, animation: boolean) {
+        // undim block
+        if (isHeaderFocusInfo(info)) {
+            this.undim([info.block], animation);
+        }
+        else if (isListFocusInfo(info)) {
+            this.undim([info.block], animation);
+        }
+        else {
+            FocusPluginLogger.log('Error', 'Unknown focus info type');
         }
 
-        return body;
+        if (isHeaderFocusInfo(info)) {
+            [info.block, ...info.body].forEach(element => {
+                let cursor: Element | null = element.nextElementSibling;
+                let cursorTag: string | undefined;
+                while (cursor !== null) {
+                    cursorTag = cursor.firstElementChild?.tagName;
+                    if (cursorTag && (cursorTag.match(/^H[1-6]$/) || cursorTag === 'LI')) {
+                        if (!this.includeBody || (cursorTag.match(/^H[1-6]$/) && (cursorTag <= info.type)))
+                            break;
+                    }
+                    info.body.add(cursor);
+                    cursor = cursor.nextElementSibling;
+                }
+            });
+            this.undim(Array.from(info.body), animation);
+            this.dim(Array.from(pane.children || []).filter(element => (element !== info.block) && !(info.body.has(element))), animation);
+        }
+        else if (isListFocusInfo(info)) {
+            // undim target
+            this.undim([info.target], animation);
+            // dim siblings
+            this.dim(Array.from(info.target.parentElement?.children || []).filter(element => (element !== info.target)), animation);
+            this.dim(Array.from(pane.children || []).filter(element => (element !== info.block)), animation);
+        }
     }
-
+        
     private processIntermediate(pane: Element, info: IntermediateFocusInfo, animation: boolean = true) {
         // undim
-        [info.target, ...info.after].forEach(element => {
+        [info.block, ...info.after].forEach(element => {
             if (element.nextElementSibling !== null) {
-                let cursor: Element | null = element.nextElementSibling;
+                let cursor: Element | null = element;
                 while (cursor !== null) {
-                    if (cursor.firstElementChild?.hasAttribute('data-heading')) {
+                    if (cursor.firstElementChild?.tagName.match(/^H[1-6]$/)) {
                         let headings = info.metadata?.headings || [];
                         let headingIndex = headings.map(heading => heading.heading).indexOf(cursor.firstElementChild.getAttribute('data-heading') as string);
 
@@ -152,25 +134,24 @@ export class FocusManager {
                             break;
                         }
                         
-                        info.after.add(info.target);
+                        info.after.add(info.block);
                         break;
                     }
                     info.after.add(cursor);
-                    this.undim([cursor], true);
+                    this.undim([cursor], animation);
                     cursor = cursor.nextElementSibling;
                 }
             }
         });
 
-        [info.target, ...info.before].forEach(element => {
+        [info.block, ...info.before].forEach(element => {
             if (element.previousElementSibling !== null) {
                 let cursor: Element | null = element.previousElementSibling;
                 while (cursor !== null) {
                     if (cursor.firstElementChild?.hasAttribute('data-heading')) {
-                        let focusInfo: FocusInfo = {
+                        let focusInfo: HeaderFocusInfo = {
                             type: cursor.firstElementChild.tagName,
                             block: cursor,
-                            target: cursor.firstElementChild,
                             body: new Set()
                         };
                         console.log(focusInfo);
@@ -179,7 +160,7 @@ export class FocusManager {
                         break;
                     }
                     info.before.add(cursor);
-                    this.undim([cursor], true);
+                    this.undim([cursor], animation);
                     cursor = cursor.previousElementSibling;
                 }
                 
@@ -187,56 +168,39 @@ export class FocusManager {
         });
         // dim siblings
         if (isIntermediateFocusInfo(this.paneInfo.get(pane)))
-            this.dim(Array.from(pane.children || []).filter(element => element !== info.target && !info.before.has(element) && !info.after.has(element)), true);
+            this.dim(Array.from(pane.children || []).filter(element => element !== info.block && !info.before.has(element) && !info.after.has(element)), animation);
     }
 
-    focus(pane: Element, info: FocusInfo) {
-        let body: Array<Element> = [];
-        switch (info.type) {
-            case 'H1':
-            case 'H2':
-            case 'H3':
-            case 'H4':
-            case 'H5':
-            case 'H6':
-                // undim
-                body = (info.block.nextElementSibling) ? this.findBody(info.type, info.block.nextElementSibling) : [];
-                this.undim([info.block, ...body], true);
-                info.body = new Set(body);
-
-                break;
-
-            case 'LI':
-                // undim
-                this.undim([info.target], true);
-                this.undim([info.block], true, false);
-
-                // dim siblings
-                this.dim(Array.from(info.target.parentElement?.children || []).filter(element => element !== info.target), true);
-
-                break;
-
-            default:
-                FocusPluginLogger.log('Error', 'Unknown focus type');
-                break;
+    isSameFocus(info1: FocusInfoBase, info2: FocusInfoBase): boolean {
+        if (info1.type != info2.type)
+            return false;
+        else if (isHeaderFocusInfo(info1) && isHeaderFocusInfo(info2))
+            return info1.block === info2.block;
+        else if (isListFocusInfo(info1) && isListFocusInfo(info2))
+            return info1.target === info2.target;
+        else if (isIntermediateFocusInfo(info1) && isIntermediateFocusInfo(info2)) {
+            return (info1.block === info2.block) || info1.before.has(info2.block) || info1.after.has(info2.block) ||
+                   (info2.block === info1.block) || info2.before.has(info1.block) || info2.after.has(info1.block);
         }
-
-        // dim other blocks
-        this.dim(Array.from(pane.children || []).filter(element => (element !== info.block) && !(info.body.has(element))), true);
-        
-        this.paneInfo.set(pane, info);
-        this.observer.observe(pane, { childList: true });
+        else
+            return false;
     }
 
-    focusContent(pane: Element, content: IntermediateFocusInfo) {
-        if (content.metadata === null) {
-            this.undim([content.target], true);
-            this.dim(Array.from(content.target.parentElement?.children || []).filter(element => (element !== content.target)), true);
-            this.paneInfo.set(pane, content);
+    focus(pane: Element, info: FocusInfoBase) {
+        if (isIntermediateFocusInfo(info)) {
+            if (info.metadata === null) {
+                this.undim([info.block], true);
+                this.dim(Array.from(info.block.parentElement?.children || []).filter(element => (element !== info.block)), true);
+                this.paneInfo.set(pane, info);
+            }
+            else {
+                this.processIntermediate(pane, info);
+                this.paneInfo.set(pane, info);
+            }
         }
         else {
-            this.processIntermediate(pane, content);
-            this.paneInfo.set(pane, content);
+            this.process(pane, info, true);
+            this.paneInfo.set(pane, info);
         }
         this.observer.observe(pane, { childList: true });
     }
@@ -257,6 +221,7 @@ export class FocusManager {
     }
 
     clearAll() {
+        this.undim(Array.from(document.querySelectorAll(`.${this.classes['dimmed']}`)), true);
         this.paneInfo = new WeakMap();
     }
 

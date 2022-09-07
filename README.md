@@ -3,14 +3,14 @@ A plugin for [obsidian](https://obsidian.md/) to focus on a specific paragraph i
 
 ## Features
 - Focus on a specific heading and its children when clicking on them.
-	- Start from v1.2.0, you can also focus on a specific paragraph by change the setting `Content Behavior` to `Only Focus the Element`.
-	- Start from v1.2.0, you can focus by clicking the children of a heading.
+    - Start from v1.2.0. You can also focus on a specific paragraph by changing the setting `Content Behavior` to `Only Focus the Element`.
+    - Start from v1.2.0. You can focus by clicking the children of a heading.
 
 ![](demo.gif)
 
 ## Usage
-1. The plugin is now available in community plugins list! You can download the plugin directly through Obsidian's `Settings > Community plugins` Tab.
-	- You can also install with [BRAT](https://github.com/TfTHacker/obsidian42-brat), with the repository name `nagi1999a/obsidian-focus-plugin`.
+1. The plugin is now available in the community plugins list! You can download the plugin directly through Obsidian's `Settings > Community plugins` Tab.
+    - You can also install with [BRAT](https://github.com/TfTHacker/obsidian42-brat), with the repository name `nagi1999a/obsidian-focus-plugin`.
 2. Enable the plugin named `Focus and Highlight` in Obsidian's `Settings > Community plugins` Tab.
 
 Once the plugin is installed and enabled, you can focus on different headings by clicking on any of them.
@@ -31,19 +31,19 @@ Clear the focus state by clicking on the blank area at the left or right side of
 This option affects the scope of the focus state.
 
 #### Only One Block
-Focus only the block you clicked on.
+Focus only on the block you clicked on.
 
 #### Also the Content
-Focus the block you clicked on and related contents.
+Focus on the block you clicked on and related content.
 
 ### Content Behavior
-This option affects the behavior when clicking on the content elements, e.g. pure text, callout block, etc.
+This option affects the behavior when clicking on the content elements, e.g. pure text, and callout block.
 
-#### Only Focus the Element
-Focus only the element you clicked on.
+#### Only Focus on the Element
+Focus only on the element you clicked on.
 
 #### Focus Related Contents
-Focus the element you clicked on and related contents.
+Focus on the element you clicked on and related content.
 
 ### Style Settings
 With the [Style Settings](https://github.com/mgmeyers/obsidian-style-settings) plugin installed and enabled, you can further customize some visual properties under `Settings > Style Settings > Focus and Highlight`.
@@ -56,7 +56,7 @@ Set the speed of the animation in seconds. Default is 0.5.
 
 ## Discussion
 
-### Behavior under Mutiple Panes
+### Behavior under Multiple Panes
 The plugin now supports multi-pane scenarios. Different panes will be able to focus on their headings, as the following GIF shows.
 
 ![](multi_pane.gif)
@@ -67,7 +67,7 @@ If you encounter any problems or have suggestions about the plugin, please feel 
 ### TODO
 - [ ] Add support in edit mode.
 ### Support
-> [!NOTE] Maintain a plugin is not an easy task.
+> [!NOTE] Maintaining a plugin is not an easy task.
 > If you like this plugin, please consider the following methods to support the author:
-> 1. Give me a star!
+> 1. Please give me a star!
 > 2. [Buy me a coffee](https://www.buymeacoffee.com/nagi1999a)!

@@ -1,17 +1,19 @@
 import { App, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { FocusManager } from 'utils/focusManager';
-import { getFocusInfo, isFocusInfo, isIntermediateFocusInfo } from 'utils/info';
+import { getFocusInfo, isHeaderFocusInfo, isIntermediateFocusInfo, isListFocusInfo } from 'utils/info';
 import { FocusPluginLogger } from 'utils/log';
 interface FocusPluginSettings {
 	clearMethod: 'click-again' | 'click-outside';
 	contentBehavior: 'element' | 'content' | 'none';
 	focusScope: 'block' | 'content';
+	enableList: boolean;
 }
 
 const DEFAULT_SETTINGS: FocusPluginSettings = {
 	clearMethod: 'click-again',
 	contentBehavior: 'content',
-	focusScope: 'content'
+	focusScope: 'content',
+	enableList: false,
 }
 
 interface PaneState {
@@ -35,7 +37,7 @@ export default class FocusPlugin extends Plugin {
 	}
 
 	async onload() {
-		
+
 		await this.loadSettings();
 
 		this.addCommand({
@@ -76,12 +78,14 @@ export default class FocusPlugin extends Plugin {
 				return;
 
 			let focusInfo = getFocusInfo(evt.target)
+			if (!focusInfo)
+				return;
 
 			let currentFocus = this.focusManager.getFocus(paneState.head);
 			if (currentFocus !== undefined) {
 				switch (this.settings.clearMethod) {
 					case 'click-again':
-						if (focusInfo?.target === currentFocus.target) {
+						if (this.focusManager.isSameFocus(focusInfo, currentFocus)) {
 							this.focusManager.clear(paneState.head);
 							return;
 						}
@@ -95,9 +99,7 @@ export default class FocusPlugin extends Plugin {
 				}
 			}
 
-			if (isFocusInfo(focusInfo))
-				this.focusManager.focus(paneState.head, focusInfo);
-			else if (isIntermediateFocusInfo(focusInfo)) {
+			if (isIntermediateFocusInfo(focusInfo)) {
 				let activeFile = this.app.workspace.getActiveFile();
 				let metadata = activeFile !== null ? this.app.metadataCache.getFileCache(activeFile) : null;
 				if (metadata) {
@@ -105,7 +107,7 @@ export default class FocusPlugin extends Plugin {
 						case 'content':
 							focusInfo.metadata = metadata;
 						case 'element':
-							this.focusManager.focusContent(paneState.head, focusInfo);
+							this.focusManager.focus(paneState.head, focusInfo);
 							break;
 						default:
 							break;
@@ -115,9 +117,13 @@ export default class FocusPlugin extends Plugin {
 					FocusPluginLogger.log('Error', 'No metadata found for active file');
 				}
 			}
+			else if (isHeaderFocusInfo(focusInfo))
+				this.focusManager.focus(paneState.head, focusInfo);
+			else if (isListFocusInfo(focusInfo) && this.settings.enableList)
+				this.focusManager.focus(paneState.head, focusInfo);
 		});
 
-		
+
 	}
 
 	onunload() {
@@ -132,6 +138,7 @@ export default class FocusPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 		this.focusManager.includeBody = this.settings.focusScope === 'content';
+		this.focusManager.clearAll();
 	}
 }
 
@@ -165,24 +172,24 @@ class FocusPluginSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-		.setName('Focus Scope')
-		.setDesc('What to focus when clicking')
-		.addDropdown(dropdown => dropdown.addOptions({
-			'block': 'Only one block',
-			'content': 'Also the content'
-		})
-			.setValue(this.plugin.settings.focusScope)
-			.onChange(async (value: FocusPluginSettings["focusScope"]) => {
-				this.plugin.settings.focusScope = value;
-				await this.plugin.saveSettings();
-				FocusPluginLogger.log('Debug', 'focus scope changed to ' + value);
-			}));
-		
+			.setName('Focus Scope')
+			.setDesc('What to focus when clicking')
+			.addDropdown(dropdown => dropdown.addOptions({
+				'block': 'Only one block',
+				'content': 'Also the content'
+			})
+				.setValue(this.plugin.settings.focusScope)
+				.onChange(async (value: FocusPluginSettings["focusScope"]) => {
+					this.plugin.settings.focusScope = value;
+					await this.plugin.saveSettings();
+					FocusPluginLogger.log('Debug', 'focus scope changed to ' + value);
+				}));
+
 		new Setting(containerEl)
 			.setName('Content Behavior')
-			.setDesc('What to do when clicking on the content elements, e.g. pure text, callout block, etc.')
+			.setDesc('What to do when clicking on the content elements, e.g. pure text, callout block')
 			.addDropdown(dropdown => dropdown.addOptions({
-				'element': 'Only focus the element',
+				'element': 'Only focus on the element',
 				'content': 'Focus related contents',
 				'none': 'Do nothing'
 
@@ -192,6 +199,17 @@ class FocusPluginSettingTab extends PluginSettingTab {
 					this.plugin.settings.contentBehavior = value;
 					await this.plugin.saveSettings();
 					FocusPluginLogger.log('Debug', 'content behavior changed to ' + value);
+				}));
+
+		new Setting(containerEl)
+			.setName('Enable List')
+			.setDesc('Focus on the list item (experimental, only works on the first level list)')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.enableList)
+				.onChange(async (value: FocusPluginSettings["enableList"]) => {
+					this.plugin.settings.enableList = value;
+					await this.plugin.saveSettings();
+					FocusPluginLogger.log('Debug', 'enable list changed to ' + value);
 				}));
 	}
 }
