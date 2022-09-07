@@ -78,14 +78,12 @@ export default class FocusPlugin extends Plugin {
 				return;
 
 			let focusInfo = getFocusInfo(evt.target)
-			if (!focusInfo)
-				return;
 
 			let currentFocus = this.focusManager.getFocus(paneState.head);
 			if (currentFocus !== undefined) {
 				switch (this.settings.clearMethod) {
 					case 'click-again':
-						if (this.focusManager.isSameFocus(focusInfo, currentFocus)) {
+						if (focusInfo && this.focusManager.isSameFocus(focusInfo, currentFocus)) {
 							this.focusManager.clear(paneState.head);
 							return;
 						}

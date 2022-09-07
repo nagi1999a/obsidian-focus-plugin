@@ -76,7 +76,7 @@ export class FocusManager {
             this.undim([info.block], animation);
         }
         else if (isListFocusInfo(info)) {
-            this.undim([info.block], animation);
+            this.undim([info.block], animation, false);
         }
         else {
             FocusPluginLogger.log('Error', 'Unknown focus info type');
