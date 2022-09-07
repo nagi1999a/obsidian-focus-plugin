@@ -5,6 +5,7 @@ A plugin for [obsidian](https://obsidian.md/) to focus on a specific paragraph i
 - Focus on a specific heading and its children when clicking on them.
     - Start from v1.2.0. You can also focus on a specific paragraph by changing the setting `Content Behavior` to `Only Focus the Element`.
     - Start from v1.2.0. You can focus by clicking the children of a heading.
+	- If you don't want to change your focus state when selecting the text, you can make the value of `Focus Sensitivity` larger.
 
 ![](demo.gif)
 
@@ -44,6 +45,12 @@ Focus only on the element you clicked on.
 
 #### Focus Related Contents
 Focus on the element you clicked on and related content.
+
+### Enable List
+Focus on the list item (experimental, only works on the first level list)
+
+### Focus Sensitivity
+Focus only when the mouse is 'not' still for a while (larger means longer).
 
 ### Style Settings
 With the [Style Settings](https://github.com/mgmeyers/obsidian-style-settings) plugin installed and enabled, you can further customize some visual properties under `Settings > Style Settings > Focus and Highlight`.

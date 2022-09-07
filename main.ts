@@ -7,6 +7,7 @@ interface FocusPluginSettings {
 	contentBehavior: 'element' | 'content' | 'none';
 	focusScope: 'block' | 'content';
 	enableList: boolean;
+	focusSensitivity: number;
 }
 
 const DEFAULT_SETTINGS: FocusPluginSettings = {
@@ -14,6 +15,7 @@ const DEFAULT_SETTINGS: FocusPluginSettings = {
 	contentBehavior: 'none',
 	focusScope: 'content',
 	enableList: false,
+	focusSensitivity: 1600
 }
 
 interface PaneState {
@@ -24,6 +26,7 @@ interface PaneState {
 export default class FocusPlugin extends Plugin {
 	settings: FocusPluginSettings;
 	focusManager: FocusManager = new FocusManager();
+	lastClick: number = 0;
 
 	private getPaneState(): PaneState | null {
 		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -68,7 +71,13 @@ export default class FocusPlugin extends Plugin {
 			this.focusManager.changePane(paneState.head);
 		}));
 
-		this.registerDomEvent(document, 'click', async (evt: MouseEvent) => {
+		this.registerDomEvent(document, 'pointerdown', (evt: PointerEvent) => {
+			this.lastClick = evt.timeStamp;
+		})
+
+		this.registerDomEvent(document, 'pointerup', (evt: MouseEvent) => {
+			if (evt.timeStamp - this.lastClick > this.settings.focusSensitivity)
+				return;
 
 			if (!(evt.target instanceof Element))
 				return;
@@ -209,5 +218,18 @@ class FocusPluginSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 					FocusPluginLogger.log('Debug', 'enable list changed to ' + value);
 				}));
+
+		new Setting(containerEl)
+			.setName('Focus Sensitivity')
+			.setDesc("Focus only when the mouse is 'not' still for a while (larger means longer)")
+			.addSlider(slider => slider
+				.setLimits(100, 10100, 500)
+				.setValue(this.plugin.settings.focusSensitivity)
+				.onChange(async (value: FocusPluginSettings["focusSensitivity"]) => {
+					this.plugin.settings.focusSensitivity = value;
+					await this.plugin.saveSettings();
+					FocusPluginLogger.log('Debug', 'focus delay changed to ' + value);
+				}));
+
 	}
 }
