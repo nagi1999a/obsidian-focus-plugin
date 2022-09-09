@@ -1,6 +1,6 @@
 import { App, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { FocusManager } from 'utils/focusManager';
-import { getFocusInfo, isHeaderFocusInfo, isIntermediateFocusInfo, isListFocusInfo } from 'utils/info';
+import { getFocusInfo, isHeaderFocusInfo, isIntermediateFocusInfo, isListFocusInfo, toIntermediateFocusInfo } from 'utils/info';
 import { FocusPluginLogger } from 'utils/log';
 interface FocusPluginSettings {
 	clearMethod: 'click-again' | 'click-outside';
@@ -105,7 +105,14 @@ export default class FocusPlugin extends Plugin {
 						break;
 				}
 			}
-
+			
+			if (isHeaderFocusInfo(focusInfo))
+				this.focusManager.focus(paneState.head, focusInfo);
+			else if (isListFocusInfo(focusInfo) && this.settings.enableList)
+				this.focusManager.focus(paneState.head, focusInfo);
+			else if (focusInfo)
+				focusInfo = toIntermediateFocusInfo(focusInfo);
+			
 			if (isIntermediateFocusInfo(focusInfo)) {
 				let activeFile = this.app.workspace.getActiveFile();
 				let metadata = activeFile !== null ? this.app.metadataCache.getFileCache(activeFile) : null;
@@ -124,10 +131,6 @@ export default class FocusPlugin extends Plugin {
 					FocusPluginLogger.log('Error', 'No metadata found for active file');
 				}
 			}
-			else if (isHeaderFocusInfo(focusInfo))
-				this.focusManager.focus(paneState.head, focusInfo);
-			else if (isListFocusInfo(focusInfo) && this.settings.enableList)
-				this.focusManager.focus(paneState.head, focusInfo);
 		});
 
 

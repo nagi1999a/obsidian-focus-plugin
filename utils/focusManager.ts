@@ -108,9 +108,10 @@ export class FocusManager {
         }
     }
         
-    private processIntermediate(pane: Element, info: IntermediateFocusInfo, animation: boolean = true) {
+    private processIntermediate(pane: Element, info: IntermediateFocusInfo, animation: boolean = true): boolean {
         // undim
-        [info.block, ...info.after].forEach(element => {
+        const after = [info.block, ...info.after];
+        for (const element of after) {
             if (element.nextElementSibling !== null) {
                 let cursor: Element | null = element;
                 while (cursor !== null) {
@@ -142,9 +143,10 @@ export class FocusManager {
                     cursor = cursor.nextElementSibling;
                 }
             }
-        });
+        };
 
-        [info.block, ...info.before].forEach(element => {
+        const before = [info.block, ...info.before];
+        for (const element of before) {
             if (element.previousElementSibling !== null) {
                 let cursor: Element | null = element.previousElementSibling;
                 while (cursor !== null) {
@@ -154,10 +156,8 @@ export class FocusManager {
                             block: cursor,
                             body: new Set()
                         };
-                        console.log(focusInfo);
-
                         this.focus(pane, focusInfo);
-                        break;
+                        return true;
                     }
                     info.before.add(cursor);
                     this.undim([cursor], animation);
@@ -165,10 +165,10 @@ export class FocusManager {
                 }
                 
             }
-        });
+        }
         // dim siblings
-        if (isIntermediateFocusInfo(this.paneInfo.get(pane)))
-            this.dim(Array.from(pane.children || []).filter(element => element !== info.block && !info.before.has(element) && !info.after.has(element)), animation);
+        this.dim(Array.from(pane.children || []).filter(element => element !== info.block && !info.before.has(element) && !info.after.has(element)), animation);
+        return false
     }
 
     isSameFocus(info1: FocusInfoBase, info2: FocusInfoBase): boolean {
@@ -187,6 +187,7 @@ export class FocusManager {
     }
 
     focus(pane: Element, info: FocusInfoBase) {
+
         if (isIntermediateFocusInfo(info)) {
             if (info.metadata === null) {
                 this.undim([info.block], true);
@@ -194,8 +195,8 @@ export class FocusManager {
                 this.paneInfo.set(pane, info);
             }
             else {
-                this.processIntermediate(pane, info);
-                this.paneInfo.set(pane, info);
+                if (!this.processIntermediate(pane, info))
+                    this.paneInfo.set(pane, info);
             }
         }
         else {

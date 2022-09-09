@@ -32,6 +32,17 @@ export function isIntermediateFocusInfo(info: FocusInfoBase | undefined | null):
     return !!info && info.type === 'UNKNOWN';
 }
 
+export function toIntermediateFocusInfo(info: FocusInfoBase): IntermediateFocusInfo {
+    return {
+        block: info.block,
+        type: 'UNKNOWN',
+        before: new Set(),
+        after: new Set(),
+        metadata: null,
+        level: null
+    }
+}
+
 export function getFocusInfo(el: Element): HeaderFocusInfo | ListFocusInfo | IntermediateFocusInfo | null {
     let focusType: string | null = null;
     let focusBlock: Element | null = null;
