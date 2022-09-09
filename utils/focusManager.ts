@@ -171,17 +171,23 @@ export class FocusManager {
         return false
     }
 
-    isSameFocus(info1: FocusInfoBase, info2: FocusInfoBase): boolean {
-        if (info1.type != info2.type)
+    isSameFocus(pane: Element, info: FocusInfoBase): boolean {
+        const currentFocus = this.paneInfo.get(pane);
+        if (!currentFocus)
             return false;
-        else if (isHeaderFocusInfo(info1) && isHeaderFocusInfo(info2))
-            return info1.block === info2.block;
-        else if (isListFocusInfo(info1) && isListFocusInfo(info2))
-            return info1.target === info2.target;
-        else if (isIntermediateFocusInfo(info1) && isIntermediateFocusInfo(info2)) {
-            return (info1.block === info2.block) || info1.before.has(info2.block) || info1.after.has(info2.block) ||
-                   (info2.block === info1.block) || info2.before.has(info1.block) || info2.after.has(info1.block);
+        
+        else if (isHeaderFocusInfo(currentFocus)) {
+            if (isHeaderFocusInfo(info))
+                return currentFocus.block === info.block;
+            else if (isIntermediateFocusInfo(info))
+                return currentFocus.body.has(info.block);
+            else
+                return false;
         }
+        else if (isListFocusInfo(currentFocus))
+            return isListFocusInfo(info) && currentFocus.target === info.target;
+        else if (isIntermediateFocusInfo(currentFocus) ) 
+            return currentFocus.block === info.block || currentFocus.before.has(info.block) || currentFocus.after.has(info.block);
         else
             return false;
     }

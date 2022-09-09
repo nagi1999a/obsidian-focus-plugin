@@ -88,11 +88,18 @@ export default class FocusPlugin extends Plugin {
 
 			let focusInfo = getFocusInfo(evt.target)
 
+			// fallback to intermediate focus if list is disabled
+			if (!this.settings.enableList && isListFocusInfo(focusInfo))
+				focusInfo = toIntermediateFocusInfo(focusInfo);
+
+			if (isIntermediateFocusInfo(focusInfo) && this.settings.contentBehavior === 'none')
+				return;
+			
 			let currentFocus = this.focusManager.getFocus(paneState.head);
 			if (currentFocus !== undefined) {
 				switch (this.settings.clearMethod) {
 					case 'click-again':
-						if (focusInfo && this.focusManager.isSameFocus(focusInfo, currentFocus)) {
+						if (focusInfo && this.focusManager.isSameFocus(paneState.head, focusInfo)) {
 							this.focusManager.clear(paneState.head);
 							return;
 						}
@@ -105,14 +112,7 @@ export default class FocusPlugin extends Plugin {
 						break;
 				}
 			}
-			
-			if (isHeaderFocusInfo(focusInfo))
-				this.focusManager.focus(paneState.head, focusInfo);
-			else if (isListFocusInfo(focusInfo) && this.settings.enableList)
-				this.focusManager.focus(paneState.head, focusInfo);
-			else if (focusInfo)
-				focusInfo = toIntermediateFocusInfo(focusInfo);
-			
+
 			if (isIntermediateFocusInfo(focusInfo)) {
 				let activeFile = this.app.workspace.getActiveFile();
 				let metadata = activeFile !== null ? this.app.metadataCache.getFileCache(activeFile) : null;
@@ -131,6 +131,8 @@ export default class FocusPlugin extends Plugin {
 					FocusPluginLogger.log('Error', 'No metadata found for active file');
 				}
 			}
+			else if (focusInfo != null)
+				this.focusManager.focus(paneState.head, focusInfo);
 		});
 
 
