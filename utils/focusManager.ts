@@ -88,16 +88,28 @@ export class FocusManager {
                 let cursorTag: string | undefined;
                 while (cursor !== null) {
                     cursorTag = cursor.firstElementChild?.tagName;
-                    if (cursorTag && (cursorTag.match(/^H[1-6]$/) || cursorTag === 'LI')) {
-                        if (!this.includeBody || (cursorTag.match(/^H[1-6]$/) && (cursorTag <= info.type)))
-                            break;
+                    if (cursorTag && cursorTag.match(/^H[1-6]$/)) {
+                        if (this.includeBody && cursorTag > info.type)
+                            info.content.add(cursor);
+                        break;
                     }
                     info.body.add(cursor);
                     cursor = cursor.nextElementSibling;
                 }
             });
-            this.undim(Array.from(info.body), animation);
-            this.dim(Array.from(pane.children || []).filter(element => (element !== info.block) && !(info.body.has(element))), animation);
+            info.content.forEach(element => {
+                let cursor: Element | null = element.nextElementSibling;
+                let cursorTag: string | undefined;
+                while (cursor !== null) {
+                    cursorTag = cursor.firstElementChild?.tagName;
+                    if (cursorTag && (cursorTag.match(/^H[1-6]$/) && (cursorTag <= info.type)))
+                        break;
+                    info.content.add(cursor);
+                    cursor = cursor.nextElementSibling;
+                }
+            });
+            this.undim([...info.body, ...info.content], animation);
+            this.dim(Array.from(pane.children || []).filter(element => (element !== info.block) && !info.body.has(element) && !(info.content.has(element))), animation);
         }
         else if (isListFocusInfo(info)) {
             // undim target
@@ -154,7 +166,8 @@ export class FocusManager {
                         let focusInfo: HeaderFocusInfo = {
                             type: cursor.firstElementChild.tagName,
                             block: cursor,
-                            body: new Set()
+                            body: new Set(),
+                            content: new Set()
                         };
                         this.focus(pane, focusInfo);
                         return true;
@@ -193,7 +206,7 @@ export class FocusManager {
     }
 
     focus(pane: Element, info: FocusInfoBase) {
-
+        
         if (isIntermediateFocusInfo(info)) {
             if (info.metadata === null) {
                 this.undim([info.block], true);

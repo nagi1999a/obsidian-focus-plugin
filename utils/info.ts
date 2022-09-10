@@ -7,6 +7,7 @@ export interface FocusInfoBase {
 
 export interface HeaderFocusInfo extends FocusInfoBase {
     body: Set<Element>;
+    content: Set<Element>;
 }
 
 export interface ListFocusInfo extends FocusInfoBase {
@@ -82,7 +83,8 @@ export function getFocusInfo(el: Element): HeaderFocusInfo | ListFocusInfo | Int
         return {
             block: focusBlock,
             type: focusType,
-            body: new Set()
+            body: new Set(),
+            content: new Set()
         }
     else if (focusType === 'LI')
         return {
