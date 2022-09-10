@@ -88,6 +88,7 @@ export class FocusManager {
                 let cursorTag: string | undefined;
                 while (cursor !== null) {
                     cursorTag = cursor.firstElementChild?.tagName;
+                    // TODO: create a priority and check function for tags
                     if (cursorTag && cursorTag.match(/^H[1-6]$/)) {
                         if (this.includeBody && cursorTag > info.type)
                             info.content.add(cursor);
@@ -122,63 +123,66 @@ export class FocusManager {
         
     private processIntermediate(pane: Element, info: IntermediateFocusInfo, animation: boolean = true): boolean {
         // undim
-        const after = [info.block, ...info.after];
-        for (const element of after) {
-            if (element.nextElementSibling !== null) {
-                let cursor: Element | null = element;
-                while (cursor !== null) {
-                    if (cursor.firstElementChild?.tagName.match(/^H[1-6]$/)) {
-                        let headings = info.metadata?.headings || [];
-                        let headingIndex = headings.map(heading => heading.heading).indexOf(cursor.firstElementChild.getAttribute('data-heading') as string);
+        if (info.metadata) {
+            const after = [info.block, ...info.after];
+            for (const element of after) {
+                if (element.nextElementSibling !== null) {
+                    let cursor: Element | null = element;
+                    while (cursor !== null) {
+                        if (cursor.firstElementChild?.tagName.match(/^H[1-6]$/)) {
+                            let headings = info.metadata.headings || [];
+                            let headingIndex = headings.map(heading => heading.heading).indexOf(cursor.firstElementChild.getAttribute('data-heading') as string);
 
-                        if (headingIndex === -1)
-                            FocusPluginLogger.log('Error', 'Heading not found in metadata');
+                            if (headingIndex === -1)
+                                FocusPluginLogger.log('Error', `Heading '${cursor.firstElementChild.getAttribute('data-heading')}' not found in metadata`);
 
-                        if (info.level === null) {
-                            if (headingIndex === 0)
-                                info.level = 0;
-                            else {
-                                let prevHeading = headings[headingIndex - 1];
-                                info.level = prevHeading.level;
+                            if (info.level === null) {
+                                if (headingIndex === 0)
+                                    info.level = 0;
+                                else {
+                                    let prevHeading = headings[headingIndex - 1];
+                                    info.level = prevHeading.level;
+                                }
                             }
-                        }
 
-                        if (headings[headingIndex].level >= info.level) {
+                            if (headings[headingIndex].level >= info.level) {
+                                break;
+                            }
+                            
+                            info.after.add(info.block);
                             break;
                         }
-                        
-                        info.after.add(info.block);
-                        break;
+                        info.after.add(cursor);
+                        this.undim([cursor], animation);
+                        cursor = cursor.nextElementSibling;
                     }
-                    info.after.add(cursor);
-                    this.undim([cursor], animation);
-                    cursor = cursor.nextElementSibling;
                 }
-            }
-        };
-
-        const before = [info.block, ...info.before];
-        for (const element of before) {
-            if (element.previousElementSibling !== null) {
-                let cursor: Element | null = element.previousElementSibling;
-                while (cursor !== null) {
-                    if (cursor.firstElementChild?.hasAttribute('data-heading')) {
-                        let focusInfo: HeaderFocusInfo = {
-                            type: cursor.firstElementChild.tagName,
-                            block: cursor,
-                            body: new Set(),
-                            content: new Set()
-                        };
-                        this.focus(pane, focusInfo);
-                        return true;
+            };
+            
+            const before = [info.block, ...info.before];
+            for (const element of before) {
+                if (element.previousElementSibling !== null) {
+                    let cursor: Element | null = element.previousElementSibling;
+                    while (cursor !== null) {
+                        if (cursor.firstElementChild?.hasAttribute('data-heading')) {
+                            let focusInfo: HeaderFocusInfo = {
+                                type: cursor.firstElementChild.tagName,
+                                block: cursor,
+                                body: new Set(),
+                                content: new Set()
+                            };
+                            this.focus(pane, focusInfo);
+                            return true;
+                        }
+                        info.before.add(cursor);
+                        this.undim([cursor], animation);
+                        cursor = cursor.previousElementSibling;
                     }
-                    info.before.add(cursor);
-                    this.undim([cursor], animation);
-                    cursor = cursor.previousElementSibling;
+                    
                 }
-                
             }
         }
+        
         // dim siblings
         this.dim(Array.from(pane.children || []).filter(element => element !== info.block && !info.before.has(element) && !info.after.has(element)), animation);
         return false
@@ -206,7 +210,7 @@ export class FocusManager {
     }
 
     focus(pane: Element, info: FocusInfoBase) {
-        
+
         if (isIntermediateFocusInfo(info)) {
             if (info.metadata === null) {
                 this.undim([info.block], true);
