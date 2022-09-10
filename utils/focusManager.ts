@@ -18,7 +18,7 @@ export class FocusManager {
                 const pane = mutation.target as Element;
                 const info = this.paneInfo.get(pane)
                 if (!info) {
-                    this.clear(pane);
+                    this.clear(pane, false);
                     return;
                 }
 
@@ -222,13 +222,13 @@ export class FocusManager {
         return this.paneInfo.get(pane);
     }
 
-    clear(pane: Element) {
-        this.undim(Array.from(pane.querySelectorAll(`.${this.classes['dimmed']}`)), true);
+    clear(pane: Element, animation: boolean = true) {
+        this.undim(Array.from(pane.querySelectorAll(`.${this.classes['dimmed']}`)), animation);
         this.paneInfo.delete(pane);
     }
 
-    clearAll() {
-        this.undim(Array.from(document.querySelectorAll(`.${this.classes['dimmed']}`)), true);
+    clearAll(animation: boolean = true) {
+        this.undim(Array.from(document.querySelectorAll(`.${this.classes['dimmed']}`)), animation);
         this.paneInfo = new WeakMap();
     }
 
