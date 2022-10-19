@@ -5,6 +5,8 @@ import { FocusInfoBase, HeaderFocusInfo, ListFocusInfo, IntermediateFocusInfo, i
 
 export class FocusManager {
     paneInfo: WeakMap<Element, FocusInfoBase> = new WeakMap();
+    indicator: HTMLElement = document.createElement("div");
+    enabled: boolean;
     classes: { [key: string]: string } = {
         'enabled': 'focus-plugin-enabled',
         'dimmed': 'focus-plugin-dimmed',
@@ -31,7 +33,23 @@ export class FocusManager {
     });
 
     constructor() {
+        this.init();
+        this.indicator.onclick = () => this.toggle();
+    }
+
+    init() {
+        this.clearAll();
         document.body.classList.add(this.classes['enabled']);
+        this.indicator.innerHTML = 'Focus: on';
+        this.enabled = true;
+    }
+
+    getIndicator() {
+        return this.indicator;
+    }
+
+    isEnabled() {
+        return this.enabled;
     }
 
     private dim(elements: Array<Element>, animation: boolean) {
@@ -244,7 +262,7 @@ export class FocusManager {
         this.paneInfo.delete(pane);
     }
 
-    clearAll(animation: boolean = true) {
+    clearAll(animation: boolean = false) {
         this.undim(Array.from(document.querySelectorAll(`.${this.classes['dimmed']}`)), animation);
         this.paneInfo = new WeakMap();
     }
@@ -252,5 +270,14 @@ export class FocusManager {
     destroy() {
         this.clearAll();
         document.body.classList.remove(this.classes['enabled']);
+        this.indicator.innerHTML = 'Focus: off';
+        this.enabled = false;
+    }
+
+    toggle() {
+        if (this.enabled)
+            this.destroy();
+        else
+            this.init();
     }
 }
