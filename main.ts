@@ -8,6 +8,7 @@ interface FocusPluginSettings {
 	focusScope: 'block' | 'content';
 	enableList: boolean;
 	focusSensitivity: number;
+	indicator: boolean;
 }
 
 const DEFAULT_SETTINGS: FocusPluginSettings = {
@@ -15,7 +16,8 @@ const DEFAULT_SETTINGS: FocusPluginSettings = {
 	contentBehavior: 'none',
 	focusScope: 'content',
 	enableList: false,
-	focusSensitivity: 1600
+	focusSensitivity: 1600,
+	indicator: true
 }
 
 interface PaneState {
@@ -27,6 +29,7 @@ export default class FocusPlugin extends Plugin {
 	settings: FocusPluginSettings;
 	focusManager: FocusManager = new FocusManager();
 	lastClick: number = 0;
+	indicator: HTMLElement | null = null;
 
 	private getPaneState(): PaneState | null {
 		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -145,26 +148,35 @@ export default class FocusPlugin extends Plugin {
 			else if (focusInfo != null)
 				this.focusManager.focus(paneState.head, focusInfo);
 		});
-
-		const indicator = this.addStatusBarItem();
-		indicator.appendChild(this.focusManager.indicator);
-		indicator.classList.add('mod-clickable');
-
 	}
 
 	onunload() {
 		this.focusManager.destroy();
 	}
 
+	private async settingsPreprocessor(settings: FocusPluginSettings) {
+		this.focusManager.clearAll();
+		this.focusManager.includeBody = settings.focusScope === 'content';
+
+		if (settings.indicator && !this.indicator) {
+			this.indicator = this.addStatusBarItem();
+			this.indicator.appendChild(this.focusManager.indicator);
+			this.indicator.classList.add('mod-clickable');
+		}
+		else if (!settings.indicator && this.indicator) {
+			this.indicator.remove();
+			this.indicator = null;
+		}
+	}
+
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-		this.focusManager.includeBody = this.settings.focusScope === 'content';
+		await this.settingsPreprocessor(this.settings);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		this.focusManager.includeBody = this.settings.focusScope === 'content';
-		this.focusManager.clearAll();
+		await this.settingsPreprocessor(this.settings);
 	}
 }
 
@@ -237,6 +249,17 @@ class FocusPluginSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 					FocusPluginLogger.log('Debug', 'enable list changed to ' + value);
 				}));
+
+		new Setting(containerEl)
+		.setName('Enable Status Indicator')
+		.setDesc('Show the status indicator in the status bar')
+		.addToggle(toggle => toggle
+			.setValue(this.plugin.settings.indicator)
+			.onChange(async (value: FocusPluginSettings["indicator"]) => {
+				this.plugin.settings.indicator = value;
+				await this.plugin.saveSettings();
+				FocusPluginLogger.log('Debug', 'indicator changed to ' + value);
+			}));
 
 		new Setting(containerEl)
 			.setName('Focus Sensitivity')
