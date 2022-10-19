@@ -51,6 +51,14 @@ export default class FocusPlugin extends Plugin {
 			}
 		});
 
+		this.addCommand({
+			id: 'toggle-focus-mode',
+			name: 'Toggle Focus Mode',
+			callback: () => {
+				this.focusManager.toggle();
+			}
+		});
+
 		this.addSettingTab(new FocusPluginSettingTab(this.app, this));
 
 		this.registerEvent(this.app.workspace.on('layout-change', () => {
@@ -76,6 +84,9 @@ export default class FocusPlugin extends Plugin {
 		})
 
 		this.registerDomEvent(document, 'pointerup', (evt: MouseEvent) => {
+			if (!this.focusManager.isEnabled())
+				return;
+
 			if (evt.timeStamp - this.lastClick > this.settings.focusSensitivity)
 				return;
 
@@ -135,6 +146,9 @@ export default class FocusPlugin extends Plugin {
 				this.focusManager.focus(paneState.head, focusInfo);
 		});
 
+		const indicator = this.addStatusBarItem();
+		indicator.appendChild(this.focusManager.indicator);
+		indicator.classList.add('mod-clickable');
 
 	}
 
