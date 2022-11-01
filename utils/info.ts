@@ -58,12 +58,16 @@ export function getFocusInfo(el: Element): HeaderFocusInfo | ListFocusInfo | Int
             focusType = 'LI';
             focusTarget = cursor;
         }
+        else if (cursor.hasClass('heading-collapse-indicator')) {
+            // Click on collapse indicator, skipping
+            return null;
+        }
 
         if (cursor.parentElement?.hasClass('markdown-preview-section')) {
             focusBlock = cursor;
             break;
         }
-
+        
         cursor = cursor.parentElement;
     }
 
