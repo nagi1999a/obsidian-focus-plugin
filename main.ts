@@ -9,6 +9,7 @@ interface FocusPluginSettings {
 	enableList: boolean;
 	focusSensitivity: number;
 	indicator: boolean;
+	isEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: FocusPluginSettings = {
@@ -17,7 +18,8 @@ const DEFAULT_SETTINGS: FocusPluginSettings = {
 	focusScope: 'content',
 	enableList: false,
 	focusSensitivity: 1600,
-	indicator: true
+	indicator: true,
+	isEnabled: true,
 }
 
 interface PaneState {
@@ -30,6 +32,7 @@ export default class FocusPlugin extends Plugin {
 	focusManager: FocusManager = new FocusManager();
 	lastClick: number = 0;
 	indicator: HTMLElement | null = null;
+	indicatorEl: HTMLElement = document.createElement("div");
 
 	private getPaneState(): PaneState | null {
 		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -58,7 +61,7 @@ export default class FocusPlugin extends Plugin {
 			id: 'toggle-focus-mode',
 			name: 'Toggle Focus Mode',
 			callback: () => {
-				this.focusManager.toggle();
+				this.toggle();
 			}
 		});
 
@@ -87,7 +90,7 @@ export default class FocusPlugin extends Plugin {
 		})
 
 		this.registerDomEvent(document, 'pointerup', (evt: MouseEvent) => {
-			if (!this.focusManager.isEnabled())
+			if (!this.settings.isEnabled)
 				return;
 
 			if (evt.timeStamp - this.lastClick > this.settings.focusSensitivity)
@@ -160,12 +163,22 @@ export default class FocusPlugin extends Plugin {
 
 		if (settings.indicator && !this.indicator) {
 			this.indicator = this.addStatusBarItem();
-			this.indicator.appendChild(this.focusManager.indicator);
+			this.indicator.appendChild(this.indicatorEl);
 			this.indicator.classList.add('mod-clickable');
+			this.indicator.onclick = () => this.toggle();
 		}
 		else if (!settings.indicator && this.indicator) {
 			this.indicator.remove();
 			this.indicator = null;
+		}
+
+		if (settings.isEnabled){
+			this.indicatorEl.innerHTML = 'Focus: on';
+			this.focusManager.init();
+		}
+		else {
+			this.indicatorEl.innerHTML = 'Focus: off';
+			this.focusManager.destroy();
 		}
 	}
 
@@ -177,6 +190,11 @@ export default class FocusPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 		await this.settingsPreprocessor(this.settings);
+	}
+
+	async toggle() {
+		this.settings.isEnabled = !this.settings.isEnabled;
+		await this.saveSettings();
 	}
 }
 
@@ -194,6 +212,17 @@ class FocusPluginSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		containerEl.createEl('h2', { text: 'Focus and Highlight Settings' });
+
+		new Setting(containerEl)
+			.setName('Enabled Focus Mode')
+			.setDesc('Enable the focus feature')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.isEnabled)
+				.onChange(async (value: FocusPluginSettings["isEnabled"]) => {
+					this.plugin.settings.isEnabled = value;
+					await this.plugin.saveSettings();
+					FocusPluginLogger.log('Debug', 'isEnable changed to ' + value);
+				}));
 
 		new Setting(containerEl)
 			.setName('Clear Method')
